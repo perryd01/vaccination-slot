@@ -1,0 +1,41 @@
+\subsection{Design decisions}
+\emph{Our interpretation of the task.} There are doctors and users. The doctors are able to mint Vaccination Slot tokens. The doctors are able to burn \emph{(invalidate)} a token when it's used up. The three most important property of a single token are: Type \emph{(of the vaccine)}, Date \emph{(when the token should be burned)}, Burned \emph{(is it used up)}.
+
+A user can hold only one non-burned token and unlimited number of burned, if those were invalidated while the user was the owner - so the owner used that up. A user cannot trade a burned token.
+
+
+\subsection{Data model}
+TokenId is generated as a Universal Unique Identifier. Type is actually an \emph{enum} and it can be any of the following:
+\begin{itemize}
+  \item Alpha
+  \item Bravo
+  \item Charlie
+  \item Delta
+  \item Echo
+\end{itemize}
+
+\begin{center}
+  \begin{table}[h!]
+    \centering
+    \begin{tabular}{|c | c | c |}
+      \hline
+      \multicolumn{3}{|c|}{Token}                      \\
+      \hline
+      name     & type      & comment                   \\
+      \hline
+      TokenId  & string    & generated id of the token \\
+      Type     & string    & vaccine type              \\
+      Date     & time.Time & vaccination date          \\
+      Owner    & string    & owner of the token        \\
+      Burned   & boolean   & is it used up             \\
+      Approved & string    &                           \\
+      \hline
+    \end{tabular}
+    \caption{Vaccination Slot token's data model.}
+  \end{table}
+\end{center}
+\subsection{API}
+
+\subsection{Implemention details}
+
+\subsection{Test cases}

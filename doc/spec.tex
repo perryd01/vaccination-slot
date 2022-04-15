@@ -4,30 +4,7 @@
 \usepackage[english]{babel}
 
 
-\author{
-  Dániel, Miklós\\
-  \IfFileExists{DM.txt}{
-    \texttt{
-        \begingroup
-            \obeylines
-            \input{DM.txt}
-        \endgroup
-            }
-  }{}  
-  \and
-  Ondrejó, András\\
-  \IfFileExists{OA.txt}{
-    \texttt{
-        \begingroup
-            \obeylines
-            \input{OA.txt}
-        \endgroup
-            }
-  }{}  
-}
-
-\title{Vaccination shot smart contract using Hyperledger Fabric}
-\date{2022}
+\input{title.tex}
 
 \begin{document}
 \maketitle
@@ -35,60 +12,12 @@
 \tableofcontents
 \newpage
 \section{Introduction}
-\subsection{Task description}
-Design and implement a “vaccination slot” utility token for a (single) medical station.\par
-Vaccination slots are issued for specific occasions (at specific dates) to specific patients by the doctors. Patients are allowed to swap their slots with others, but only those patients can take part in these transactions who already own a valid token. Doctors “burn” the tokens as the vaccination of the owner occurs. No patient can hold more than one vaccination slot for any occasion at any time. Provide facilities for the patients to be able to “swap” vaccination slots in an atomic way. Take into account that the doctors use multiple types of vaccines, some of which have to be administered multiple times, within some (vaccine-dependent) time interval after the first shot.\par
-Note: this token is kind of a non-fungible one; take into consideration that what part of the full ERC-721 specification is necessary for it. For Solidity: a full ERC-721 compliant solution is looked on favorably, but it's not an absolute necessity. For Fabric, note that that you can easily “port” the ERC-721 interface specification.
-
-\subsection{Coding environment}
-\begin{itemize}
-  \item OS: Arch Linux
-  \item Programming language: Golang v1.17.8
-  \item SDK: \href{https://github.com/hyperledger/fabric-sdk-go}{Hyperledger Fabric Client SDK for Go} v1.0.0
-\end{itemize}
-
-\section{Smart contract}
-\subsection{Design decisions}
+\input{introduction.tex}
 \newpage
-\subsection{Data model}
-
-TokenId is generated as a Universal Unique Identifier. Type is actually an \emph{enum} and it can be any of the following:
-\begin{itemize}
-  \item Alpha
-  \item Bravo
-  \item Charlie
-  \item Delta
-  \item Echo
-\end{itemize}
-
-\begin{center}
-  \begin{table}[h!]
-    \centering
-\begin{tabular}{|c | c | c |}
-  \hline
-  \multicolumn{3}{|c|}{Token} \\
-  \hline
-  name & type & comment \\
-  \hline
-  TokenId & string & generated id of the token \\
-  Type & string & vaccine type \\
-  Date & time.Time & vaccination date \\
-  Owner & string & owner of the token \\
-  Burned & boolean & is it used up \\
-  Approved & string & \\
-  \hline
-  
-\end{tabular}
-\caption{Vaccination Slot token's data model.}
-\end{table}
-\end{center}
-
-
-
-\subsection{API}
-\subsection{Implemention details}
-\subsection{Test cases}
-
+\section{Smart contract}
+\input{smart_contract.tex}
+\newpage
 \section{Deploying instructions}
+\input{deploying.tex}
 
 \end{document}
