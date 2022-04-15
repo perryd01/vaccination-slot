@@ -1,5 +1,8 @@
 \documentclass{article}
 
+\usepackage{hyperref}
+\usepackage[english]{babel}
+
 
 \author{
   Dániel, Miklós\\
@@ -36,6 +39,13 @@
 Design and implement a “vaccination slot” utility token for a (single) medical station.\par
 Vaccination slots are issued for specific occasions (at specific dates) to specific patients by the doctors. Patients are allowed to swap their slots with others, but only those patients can take part in these transactions who already own a valid token. Doctors “burn” the tokens as the vaccination of the owner occurs. No patient can hold more than one vaccination slot for any occasion at any time. Provide facilities for the patients to be able to “swap” vaccination slots in an atomic way. Take into account that the doctors use multiple types of vaccines, some of which have to be administered multiple times, within some (vaccine-dependent) time interval after the first shot.\par
 Note: this token is kind of a non-fungible one; take into consideration that what part of the full ERC-721 specification is necessary for it. For Solidity: a full ERC-721 compliant solution is looked on favorably, but it's not an absolute necessity. For Fabric, note that that you can easily “port” the ERC-721 interface specification.
+
+\subsection{Coding environment}
+\begin{itemize}
+  \item OS: Arch Linux
+  \item Programming language: Golang v1.17.8
+  \item SDK: \href{https://github.com/hyperledger/fabric-sdk-go}{Hyperledger Fabric Client SDK for Go}
+\end{itemize}
 
 \section{Go}
 
