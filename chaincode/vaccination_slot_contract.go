@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
@@ -349,7 +348,7 @@ func (c *VSTokenContract) Symbol(ctx contractapi.TransactionContextInterface) (s
 	return string(bytes), nil
 }
 
-func (c *VSTokenContract) CreateToken(ctx contractapi.TransactionContextInterface, tokenId string, tokenType string, date time.Time) (*Token, error) {
+func (c *VSTokenContract) CreateToken(ctx contractapi.TransactionContextInterface, tokenId string, tokenType string, date VaccinationDate) (*Token, error) {
 	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get clientMSPID: %v", err)
