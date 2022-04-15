@@ -1,14 +1,12 @@
 package chaincode
 
-import "time"
-
 type Token struct {
-	TokenId  string    `json:"tokenId"`
-	Type     string    `json:"type"`
-	Date     time.Time `json:"date"`
-	Owner    string    `json:"owner"`
-	Burned   bool      `json:"approved"`
-	Approved string    `json:"approved"`
+	TokenId  string          `json:"tokenId"`
+	Type     string          `json:"type"`
+	Date     VaccinationDate `json:"date"`
+	Owner    string          `json:"owner"`
+	Burned   bool            `json:"approved"`
+	Approved string          `json:"approved"`
 }
 
 type Approval struct {
