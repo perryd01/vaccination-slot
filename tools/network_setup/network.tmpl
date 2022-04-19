@@ -1,0 +1,13 @@
+MICROFAB_CONFIG={
+    "endorsing_organizations":[{{range $index, $org := .Organizations}}
+            {{if $index}},{{end}}{
+                "name": {{$org}}
+            }{{end}}
+    ],
+    "channels":[
+        {
+            "name": "{{.Channel}}",
+            "endorsing_organizations":[{{range $index, $org := .Organizations}}{{if $index}},{{end}}"{{$org}}"{{end}}]
+        }
+    ]
+}

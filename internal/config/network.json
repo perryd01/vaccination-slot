@@ -1,0 +1,6 @@
+{
+  "organizations": ["MedicalStation", "Patients"],
+  "channel": "vaccinationchannel",
+  "doctor_mspid": "MedicalStationMSP",
+  "patient_mspid": "PatientsMSP"
+}
