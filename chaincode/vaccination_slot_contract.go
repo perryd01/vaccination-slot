@@ -237,7 +237,7 @@ func (c *VSTokenContract) GetApproved(ctx contractapi.TransactionContextInterfac
 // param {String} tokenId the non-fungible token to transfer
 // returns {Boolean} Return whether the transfer was successful or not
 
-func (c *VSTokenContract) TransferFrom(ctx contractapi.TransactionContextInterface, from string, to string, tokenId string) (bool, error) {
+func (c *VSTokenContract) Transfer(ctx contractapi.TransactionContextInterface, from string, to string, tokenId string) (bool, error) {
 
 	// Get ID of submitting client identity
 	sender64, err := ctx.GetClientIdentity().GetID()
@@ -348,7 +348,7 @@ func (c *VSTokenContract) Symbol(ctx contractapi.TransactionContextInterface) (s
 	return string(bytes), nil
 }
 
-func (c *VSTokenContract) CreateToken(ctx contractapi.TransactionContextInterface, tokenId string, tokenType string, date VaccinationDate) (*Token, error) {
+func (c *VSTokenContract) CreateToken(ctx contractapi.TransactionContextInterface, tokenId string, tokenType VaccinationType, date VaccinationDate) (*Token, error) {
 	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get clientMSPID: %v", err)
