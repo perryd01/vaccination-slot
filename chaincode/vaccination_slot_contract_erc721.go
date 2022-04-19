@@ -102,7 +102,7 @@ func (c *VaccinationContract) TransferFrom(ctx contractapi.TransactionContextInt
 		return false, fmt.Errorf("failed to create CompositeKey: %v", err)
 	}
 
-	err = ctx.GetStub().PutState(balanceKeyTo, []byte{0})
+	err = ctx.GetStub().PutState(balanceKeyTo, []byte(tokenId))
 	if err != nil {
 		return false, fmt.Errorf("failed to PutState balanceKeyTo %s: %v", balanceKeyTo, err)
 	}

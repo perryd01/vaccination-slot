@@ -9,7 +9,7 @@ import (
 
 func main() {
 	contract := &cc.VaccinationContract{}
-	contract.Info.Version = "0.0.1"
+	contract.Info.Version = "0.0.2"
 	contract.Info.Description = "VaccinationSlots chaincode"
 	contract.Info.License = &metadata.LicenseMetadata{}
 	contract.Info.License.Name = "MIT"
