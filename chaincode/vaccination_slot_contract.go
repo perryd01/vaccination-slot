@@ -16,17 +16,20 @@ type VaccinationContract struct {
 	contractapi.Contract
 }
 
-func (c *VaccinationContract) ClientAccountId(ctx contractapi.TransactionContextInterface) (string, error) {
-	clientAccountId64, err := ctx.GetClientIdentity().GetID()
+func (c *VaccinationContract) sender(ctx contractapi.TransactionContextInterface) (string, error) {
+	sender64, err := ctx.GetClientIdentity().GetID()
 	if err != nil {
-		return "", fmt.Errorf("failed to get client identity")
+		return "", errors.New("failed to get client identity")
 	}
+	senderBytes, err := base64.StdEncoding.DecodeString(sender64)
+	if err != nil {
+		return "", fmt.Errorf("failed to deocde base64 string sender64: %v", err)
+	}
+	return string(senderBytes), nil
+}
 
-	clientAccountBytes, err := base64.StdEncoding.DecodeString(clientAccountId64)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode string clientAccountId64: %v", err)
-	}
-	return string(clientAccountBytes), nil
+func (c *VaccinationContract) ClientAccountId(ctx contractapi.TransactionContextInterface) (string, error) {
+	return c.sender(ctx)
 }
 
 // GetSlots queries vaccination slots belonging to owner
@@ -60,7 +63,7 @@ func (c *VaccinationContract) GetSlots(ctx contractapi.TransactionContextInterfa
 	return string(slotsBytes), nil
 }
 
-func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterface, vaccine string, date string, patient string) (string, error) {
+func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterface, vaccine, date, patient string) (string, error) {
 	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
 	if err != nil {
 		return "", fmt.Errorf("failed to get client MSPID: %v", err)
@@ -89,10 +92,10 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		}
 	}
 
-	uuidWithHypen := uuid.New()
-	uuid := strings.Replace(uuidWithHypen.String(), "-", "", -1)
+	uuidWithHyphen := uuid.New()
+	tokenUuid := strings.Replace(uuidWithHyphen.String(), "-", "", -1)
 
-	exists, err := vaccinationSlotExists(ctx, uuid)
+	exists, err := vaccinationSlotExists(ctx, tokenUuid)
 	if err != nil {
 		return "", err
 	}
@@ -111,11 +114,11 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 			Type: vaccine,
 			Date: *vd,
 		},
-		TokenId: uuid,
+		TokenId: tokenUuid,
 		Owner:   patient,
 	}
 
-	vsKey, err := ctx.GetStub().CreateCompositeKey(vsPrefix, []string{uuid})
+	vsKey, err := ctx.GetStub().CreateCompositeKey(vsPrefix, []string{tokenUuid})
 	if err != nil {
 		return "", fmt.Errorf("failed to create composite key: %v", err)
 	}
@@ -130,12 +133,12 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		return "", fmt.Errorf("failed to put state: %v", err)
 	}
 
-	balanceKey, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{patient, uuid})
+	balanceKey, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{patient, tokenUuid})
 	if err != nil {
 		return "", fmt.Errorf("failed to create composite key: %v", err)
 	}
 
-	err = ctx.GetStub().PutState(balanceKey, []byte(uuid))
+	err = ctx.GetStub().PutState(balanceKey, []byte(tokenUuid))
 	if err != nil {
 		return "", fmt.Errorf("failed to put state balanceKey: %v", err)
 	}
@@ -143,7 +146,7 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 	transferEvent := &Transfer{
 		From:    "",
 		To:      patient,
-		TokenId: uuid,
+		TokenId: tokenUuid,
 	}
 
 	transferEventBytes, err := json.Marshal(transferEvent)
@@ -156,5 +159,15 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		return "", fmt.Errorf("failed to set event Transfer: %v", err)
 	}
 
-	return uuid, nil
+	return tokenUuid, nil
+}
+
+func (c *VaccinationContract) MakeOffer(ctx contractapi.TransactionContextInterface, mySlotUuid, recipient, recipientSlotUuid string) (offerUuid string, err error) {
+	// TODO
+	return "", nil
+}
+
+func (c *VaccinationContract) AcceptOffer(ctx contractapi.TransactionContextInterface, offerUuid string) error {
+	// TODO
+	return nil
 }

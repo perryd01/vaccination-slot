@@ -11,7 +11,66 @@ const (
 	vsPrefix       = "nft"
 	balancePrefix  = "balance"
 	approvalPrefix = "approval"
+	offerPrefix    = "offer"
 )
+
+func (c *VaccinationContract) emitTransfer(ctx contractapi.TransactionContextInterface, from, to, tokenId string) error {
+	transferEvent := &Transfer{
+		From:    from,
+		To:      to,
+		TokenId: tokenId,
+	}
+
+	transferEventBytes, err := json.Marshal(transferEvent)
+	if err != nil {
+		return fmt.Errorf("failed to marshal transferEvent: %v", err)
+	}
+
+	err = ctx.GetStub().SetEvent("Transfer", transferEventBytes)
+	if err != nil {
+		return fmt.Errorf("failed to SetEvent transformEventBytes %s: %v", transferEventBytes, err)
+	}
+
+	return nil
+}
+
+func (c *VaccinationContract) emitApproval(ctx contractapi.TransactionContextInterface, owner, approved, tokenId string) error {
+	approval := &Approval{
+		Owner:    owner,
+		Approved: approved,
+		TokenId:  tokenId,
+	}
+
+	approvalBytes, err := json.Marshal(approval)
+	if err != nil {
+		return err
+	}
+
+	err = ctx.GetStub().SetEvent("Approval", approvalBytes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *VaccinationContract) emitApprovalForAll(ctx contractapi.TransactionContextInterface, owner, operator string, approved bool) error {
+	approval := &ApprovalForAll{
+		Owner:    owner,
+		Operator: operator,
+		Approved: approved,
+	}
+
+	approvalBytes, err := json.Marshal(approval)
+	if err != nil {
+		return err
+	}
+
+	err = ctx.GetStub().SetEvent("ApprovalForAll", approvalBytes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func (c *VaccinationContract) BalanceOf(ctx contractapi.TransactionContextInterface, owner string) int {
 	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(balancePrefix, []string{owner})
@@ -107,20 +166,9 @@ func (c *VaccinationContract) TransferFrom(ctx contractapi.TransactionContextInt
 		return false, fmt.Errorf("failed to PutState balanceKeyTo %s: %v", balanceKeyTo, err)
 	}
 
-	transferEvent := &Transfer{
-		From:    from,
-		To:      to,
-		TokenId: tokenId,
-	}
-
-	transferEventBytes, err := json.Marshal(transferEvent)
+	err = c.emitTransfer(ctx, from, to, tokenId)
 	if err != nil {
-		return false, fmt.Errorf("failed to marshal transferEvent: %v", err)
-	}
-
-	err = ctx.GetStub().SetEvent("Transfer", transferEventBytes)
-	if err != nil {
-		return false, fmt.Errorf("failed to SetEvent transformEventBytes %s: %v", transferEventBytes, err)
+		return false, nil
 	}
 
 	return true, nil
@@ -168,7 +216,12 @@ func (c *VaccinationContract) Approve(ctx contractapi.TransactionContextInterfac
 		return false, fmt.Errorf("failed to PutState for key: %v", err)
 	}
 
-	return false, nil
+	err = c.emitApproval(ctx, vs.Owner, operator, tokenId)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (c *VaccinationContract) SetApprovalForAll(ctx contractapi.TransactionContextInterface, operator string, approved bool) (bool, error) {
@@ -183,7 +236,7 @@ func (c *VaccinationContract) SetApprovalForAll(ctx contractapi.TransactionConte
 	}
 	sender := string(senderBytes)
 
-	vsApproval := &Approval{
+	vsApproval := &ApprovalForAll{
 		Owner:    sender,
 		Operator: operator,
 		Approved: approved,
@@ -204,9 +257,9 @@ func (c *VaccinationContract) SetApprovalForAll(ctx contractapi.TransactionConte
 		return false, fmt.Errorf("failed to putState approvalBytes: %v", err)
 	}
 
-	err = ctx.GetStub().SetEvent("ApprovalForAll", approvalBytes)
+	err = c.emitApprovalForAll(ctx, sender, operator, approved)
 	if err != nil {
-		return false, fmt.Errorf("failed to SetEvent ApprovalForAll: %v", err)
+		return false, err
 	}
 
 	return true, nil
@@ -234,7 +287,7 @@ func (c *VaccinationContract) IsApprovedForAll(ctx contractapi.TransactionContex
 		return false, nil
 	}
 
-	approval := &Approval{}
+	approval := &ApprovalForAll{}
 	err = json.Unmarshal(approvalBytes, approval)
 	if err != nil {
 		return false, fmt.Errorf("failed to unmarshal: %v, string %s", err, string(approvalBytes))

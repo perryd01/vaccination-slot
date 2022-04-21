@@ -39,3 +39,78 @@ func vaccinationSlotExists(ctx contractapi.TransactionContextInterface, tokenId 
 
 	return len(vsBytes) > 0, nil
 }
+
+func putOffer(ctx contractapi.TransactionContextInterface, offer TradeOffer) error {
+	offerBytes, err := json.Marshal(&offer)
+	if err != nil {
+		return err
+	}
+
+	keySender, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{offer.Sender, offer.Uuid})
+	if err != nil {
+		return err
+	}
+	keyRecipient, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{offer.Recipient, offer.Uuid})
+	if err != nil {
+		return err
+	}
+
+	err = ctx.GetStub().PutState(keySender, offerBytes)
+	if err != nil {
+		return err
+	}
+
+	err = ctx.GetStub().PutState(keyRecipient, offerBytes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getOffers(ctx contractapi.TransactionContextInterface, identity string) (offers []TradeOffer, err error) {
+	offers = make([]TradeOffer, 0)
+
+	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(offerPrefix, []string{identity})
+	if err != nil {
+		return
+	}
+
+	for iterator.HasNext() {
+		offerKV, err := iterator.Next()
+		if err != nil {
+			return
+		}
+		offer := &TradeOffer{}
+		err = json.Unmarshal(offerKV.Value, offer)
+		if err != nil {
+			return
+		}
+		offers = append(offers, *offer)
+	}
+
+	return
+}
+
+func delOffer(ctx contractapi.TransactionContextInterface, offer TradeOffer) error {
+	keySender, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{offer.Sender, offer.Uuid})
+	if err != nil {
+		return err
+	}
+	keyRecipient, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{offer.Recipient, offer.Uuid})
+	if err != nil {
+		return err
+	}
+
+	err = ctx.GetStub().DelState(keySender)
+	if err != nil {
+		return err
+	}
+
+	err = ctx.GetStub().DelState(keyRecipient)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
