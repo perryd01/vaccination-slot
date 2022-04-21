@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
-	"github.com/perryd01/vaccination-slot/internal/config"
 	"strings"
 )
 
@@ -31,7 +30,7 @@ func (c *VaccinationContract) ClientAccountId(ctx contractapi.TransactionContext
 }
 
 // GetSlots queries vaccination slots belonging to owner
-func (c *VaccinationContract) GetSlots(ctx contractapi.TransactionContextInterface, owner string) ([]*VaccinationSlot, error) {
+func (c *VaccinationContract) getSlots(ctx contractapi.TransactionContextInterface, owner string) ([]*VaccinationSlot, error) {
 	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(balancePrefix, []string{owner})
 	if err != nil {
 		panic("Error creating asset chaincode: " + err.Error())
@@ -49,18 +48,33 @@ func (c *VaccinationContract) GetSlots(ctx contractapi.TransactionContextInterfa
 	return slots, nil
 }
 
+func (c *VaccinationContract) GetSlots(ctx contractapi.TransactionContextInterface, owner string) (string, error) {
+	slots, err := c.getSlots(ctx, owner)
+	if err != nil {
+		return "", err
+	}
+	slotsBytes, err := json.Marshal(slots)
+	if err != nil {
+		return "", err
+	}
+	return string(slotsBytes), nil
+}
+
 func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterface, vaccine string, date string, patient string) (string, error) {
 	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
 	if err != nil {
 		return "", fmt.Errorf("failed to get client MSPID: %v", err)
 	}
 
-	nc := config.NetworkConfig()
-	if clientMSPID != nc.DoctorMspid {
+	//nc := config.NetworkConfig()
+	//if nc == nil {
+	//	return "", fmt.Errorf("failed reading network config")
+	//}
+	if clientMSPID != "MedicalStationMSP" {
 		return "", fmt.Errorf("client is not authorized to create slot")
 	}
 
-	slots, err := c.GetSlots(ctx, patient)
+	slots, err := c.getSlots(ctx, patient)
 	if err != nil {
 		return "", err
 	}
@@ -70,7 +84,7 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		if err != nil {
 			return "", err
 		}
-		if string(dateBytes) == date {
+		if string(dateBytes) == "\""+date+"\"" {
 			return "", errors.New("slot occupied")
 		}
 	}
@@ -87,7 +101,7 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 	}
 
 	vd := &VaccinationDate{}
-	err = json.Unmarshal([]byte(date), vd)
+	err = json.Unmarshal([]byte("\""+date+"\""), vd)
 	if err != nil {
 		return "", err
 	}
@@ -142,5 +156,5 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		return "", fmt.Errorf("failed to set event Transfer: %v", err)
 	}
 
-	return "", nil
+	return uuid, nil
 }
