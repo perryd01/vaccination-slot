@@ -9,12 +9,15 @@ import (
 //go:embed network.json
 var network []byte
 
-var n Network
+var n *Network
 
 func init() {
-	err := json.Unmarshal(network, &n)
+	ne := &Network{}
+	err := json.Unmarshal(network, ne)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+	} else {
+		n = ne
 	}
 }
 
@@ -25,6 +28,6 @@ type Network struct {
 	PatientMspid  string   `json:"patient_mspid"`
 }
 
-func NetworkConfig() Network {
+func NetworkConfig() *Network {
 	return n
 }

@@ -1,13 +1,14 @@
 MICROFAB_CONFIG={
     "endorsing_organizations":[{{range $index, $org := .Organizations}}
             {{if $index}},{{end}}{
-                "name": {{$org}}
+                "name": "{{$org}}"
             }{{end}}
     ],
     "channels":[
         {
             "name": "{{.Channel}}",
-            "endorsing_organizations":[{{range $index, $org := .Organizations}}{{if $index}},{{end}}"{{$org}}"{{end}}]
+            "endorsing_organizations":[{{range $index, $org := .Organizations}}{{if $index}},{{end}}"{{$org}}"{{end}}],
+            "capability_level": "V2_0"
         }
     ]
 }

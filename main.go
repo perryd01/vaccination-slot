@@ -1,26 +1,34 @@
 package main
 
 import (
-	"log"
-
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
-	"github.com/perryd01/vaccination-slot/chaincode"
+	"github.com/hyperledger/fabric-contract-api-go/metadata"
+	cc "github.com/perryd01/vaccination-slot/chaincode"
+	"log"
 )
 
 func main() {
-	vsToken := new(chaincode.VSTokenContract)
+	contract := &cc.VaccinationContract{}
+	contract.Info.Version = "0.0.2"
+	contract.Info.Description = "VaccinationSlots chaincode"
+	contract.Info.License = &metadata.LicenseMetadata{}
+	contract.Info.License.Name = "MIT"
+	contract.Info.License.URL = "https://github.com/perryd01/vaccination-slot/blob/main/LICENSE"
+	contract.Info.Contact = &metadata.ContactMetadata{}
+	contract.Info.Contact.Name = "perryd01"
 
-	chaincode, err := contractapi.NewChaincode(vsToken)
-	chaincode.Info.Title = "ERC-721 chaincode"
-	chaincode.Info.Version = "0.0.1"
+	chaincode, err := contractapi.NewChaincode(contract)
 
 	if err != nil {
-		log.Fatal("Could not create chaincode " + err.Error())
+		log.Fatalf("could not create chaincode from VaccinationContract. %s", err)
 	}
+
+	chaincode.Info.Title = "Vaccination slot"
+	chaincode.Info.Version = contract.Info.Version
 
 	err = chaincode.Start()
 
 	if err != nil {
-		panic("Failed to start chaincode. " + err.Error())
+		log.Fatalf("failed to start chaincode. %s", err)
 	}
 }
