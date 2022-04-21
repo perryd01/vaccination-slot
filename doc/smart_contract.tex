@@ -103,6 +103,19 @@ Inherited from \href{https://eips.ethereum.org/EIPS/eip-721}{ERC-721 specificati
 
 
 \subsection{Implemention details}
+There are doctors and patients. The doctors are able to mint and burn Vaccination Slot tokens. The most important properties of a single token are: Type \emph{(of the vaccine)}, Date \emph{(when the token should be burned)}, Burned \emph{(is it used up)}, Previous \emph{(previous vaccine type the patient got)}.
+Type can be any of the following: \emph{Alpha}, \emph{Bravo}, \emph{Charlie}, \emph{Delta}, \emph{Echo}. Date represents a single day. For a single day, all permutation can be minted by doctors, so two tokens can exist with the same type and date but different tokenIds and held by different patients.
+
+A patient can hold only one non-burned token and unlimited number of burned. A patient cannot trade a burned token.
+A patient can trade a valid token disregarding the previous burned token. \emph{If a patient's first vaccine was an Alpha one and got another Alpha token from the doctors, it is allowed to trade it for a Bravo token.}
+
 
 
 \subsection{Test cases}
+
+\subsubsection{Successful token minting}
+\subsubsection{Unauthorized token minting}
+\subsubsection{Successful trading}
+\subsubsection{Trading a burned token}
+\subsubsection{Trading a token with invalid date}
+\subsubsection{Trading a nonexistent token}
