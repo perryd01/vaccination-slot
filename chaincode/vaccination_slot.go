@@ -5,7 +5,7 @@ package chaincode
 type VaccinationSlotData struct {
 	// Type of the vaccine.
 	// May change when the token is transferred.
-	Type string `json:"type"`
+	Type VaccinationType `json:"type"`
 
 	// When the vaccine should be administered.
 	// Never changes.

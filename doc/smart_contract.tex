@@ -1,7 +1,13 @@
-\subsection{Design decisions}
-\emph{Our interpretation of the task.} There are doctors and users. The doctors are able to mint Vaccination Slot tokens. The doctors are able to burn \emph{(invalidate)} a token when it's used up. The three most important property of a single token are: Type \emph{(of the vaccine)}, Date \emph{(when the token should be burned)}, Burned \emph{(is it used up)}.
+\newcommand{\function}[4]{
+  \textbf{#1} (\emph{#2}): #3 \newline
+  \emph{\color{teal} #4}
+}
 
-A user can hold only one non-burned token and unlimited number of burned, if those were invalidated while the user was the owner - so the owner used that up. A user cannot trade a burned token.
+
+\subsection{Design decisions}
+\emph{Our interpretation of the task.} There are doctors and users. The doctors are able to mint Vaccination Slot tokens. The doctors are able to burn \emph{(invalidate)} a token. The most important properties of a single token are: Type \emph{(of the vaccine)}, Date \emph{(when the token should be burned)}, Burned \emph{(is it used up)}, Previous \emph{(previous vaccine type the patient got)}.
+
+A user can hold only one non-burned token and unlimited number of burned. A user cannot trade a burned token.
 
 
 \subsection{Data model}
@@ -15,26 +21,86 @@ TokenId is generated as a Universal Unique Identifier. Type is actually an \emph
 \end{itemize}
 
 \begin{center}
-  \begin{table}[h!]
+  \begin{table}[!ht]
     \centering
-    \begin{tabular}{|c | c | c |}
+    \begin{tabular}{|c | c | c | c |}
       \hline
-      \multicolumn{3}{|c|}{Token}                      \\
+      \multicolumn{4}{|c|}{Token}                                              \\
       \hline
-      name     & type      & comment                   \\
+      name     & type      & comment                   & implemented interface \\
       \hline
-      TokenId  & string    & generated id of the token \\
-      Type     & string    & vaccine type              \\
-      Date     & time.Time & vaccination date          \\
-      Owner    & string    & owner of the token        \\
-      Burned   & boolean   & is it used up             \\
-      Approved & string    &                           \\
+      TokenId  & string    & generated id of the token & erc721                \\
+      Type     & string    & vaccine type (enum)       & vaccinationSlot       \\
+      Date     & time.Time & vaccination date          & vaccinationSlot       \\
+      Previous & string    & vaccine type (enum)       & vaccinationSlot       \\
+      Owner    & string    & owner of the token        & erc721                \\
+      Burned   & boolean   & is it used up             & erc721 optional       \\
+      Approved & string    &                           & erc721                \\
       \hline
     \end{tabular}
     \caption{Vaccination Slot token's data model.}
   \end{table}
 \end{center}
+
+
+\begin{center}
+  \begin{table}[!ht]
+    \centering
+    \begin{tabular}{| c | c |}
+      \hline
+      \multicolumn{2}{|c|}{Approval} \\
+      \hline
+      name     & type                \\
+      \hline
+      Owner    & string              \\
+      Operator & string              \\
+      Approved & bool                \\
+      \hline
+    \end{tabular}
+    \caption{Approval object's data model.}
+  \end{table}
+\end{center}
+
+\begin{center}
+  \begin{table}[!ht]
+    \centering
+    \begin{tabular}{| c | c |}
+      \hline
+      \multicolumn{2}{|c|}{Transfer} \\
+      \hline
+      name    & type                 \\
+      \hline
+      From    & string               \\
+      To      & string               \\
+      TokenId & string               \\
+      \hline
+    \end{tabular}
+    \caption{Transfer object's data model.}
+  \end{table}
+\end{center}
+
+\newpage
 \subsection{API}
+Inherited from \href{https://eips.ethereum.org/EIPS/eip-721}{ERC-721 specification}, function names may differ. For more specific developer documentation \href{run:spec.pdf}{see generated godoc.}
+\subsubsection{Callable functions}
+\begin{itemize}
+  \item \function{BalanceOf}{owner string}{int}{Number of tokens in owner's wallet}
+  \item \function{OwnerOf}{tokenId string}{string}{Owner of token}
+  \item \function{TransferFrom}{from string, to string, tokenId string}{bool}{Transfering a token from wallet A to wallet B (if successful). }
+  \item \function{Approve}{operator string, tokenId string}{bool}{ Change or reaffirm the approved address for an NFT }
+  \item \function{SetApprovalForAll}{operator string, approved bool}{bool}{  }
+  \item \function{GetApproved}{tokenId string}{string}{  }
+  \item \function{IsApprovedForAll}{owner string, operator string}{bool}{  }
+  \item \function{ClientAccountId}{}{string}{  }
+  \item \function{GetSlots}{owner string}{VaccinationSlot[]}{ returns an array of owner's slots }
+  \item \function{IssueSlot}{vaccine string, date string, patient string}{string}{ Create's a slot (if client is authorized) and transfers to specific patient (wallet) }
+\end{itemize}
+\subsubsection{Non-callable functions}
+\begin{itemize}
+  \item \function{readVaccinationSlot}{tokenId string}{VaccinationSlot}{}
+  \item \function{vaccinationSlotExists}{tokenId string}{bool}{}
+\end{itemize}
+
 
 \subsection{Implemention details}
 
