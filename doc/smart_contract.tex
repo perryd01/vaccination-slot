@@ -1,11 +1,33 @@
 \newcommand{\function}[4]{
-  \textbf{#1} (\emph{#2}): #3 \newline
+  \textbf{#1}%
+  (\emph{#2}):
+  #3 \newline
   \emph{\color{teal} #4}
 }
 
+\newcommand{\gopkg}[2]{
+  \href{https://pkg.go.dev/github.com/perryd01/vaccination-slot/chaincode#1}{#2}%
+}
+
+\newcommand{\testStruct}[3]{
+  \subsubsection{#1}
+  \paragraph*{Steps}
+  \begin{enumerate}
+    #2
+  \end{enumerate}
+  \textbf{Expected outcome:} #3
+}
+
+\newcommand{\vsType}[0]{\gopkg{\#VaccinationType}{Type}}
+\newcommand{\vsDate}[0]{\gopkg{\#VaccinationDate}{Date}}
+
 
 \subsection{Design decisions}
-\emph{Our interpretation of the task.} There are doctors and patients. The doctors are able to mint Vaccination Slot tokens. The doctors are able to burn \emph{(invalidate)} a token. The most important properties of a single token are: Type \emph{(of the vaccine)}, Date \emph{(when the token should be burned)}, Burned \emph{(is it used up)}, Previous \emph{(previous vaccine type the patient got)}.
+\emph{Our interpretation of the task.} There are doctors and patients. The doctors are able to mint Vaccination Slot tokens. The doctors are able to burn \emph{(invalidate)} a token. The most important properties of a single token are:%
+\vsType \emph{(of the vaccine)},
+\vsDate \emph{(when the token should be burned)},
+\href{https://pkg.go.dev/github.com/perryd01/vaccination-slot/chaincode\#VaccinationDate}{Burned} \emph{(is it used up)},
+\href{https://pkg.go.dev/github.com/perryd01/vaccination-slot/chaincode\#VaccinationSlotData}{Previous} \emph{(previous vaccine type the patient got)}.
 
 A patient can hold only one non-burned token and unlimited number of burned. A patient cannot trade a burned token.
 
@@ -38,7 +60,7 @@ TokenId is generated as a Universal Unique Identifier. Type is actually an \emph
       Approved & string    &                           & erc721                \\
       \hline
     \end{tabular}
-    \caption{Vaccination Slot token's data model.}
+    \caption{\href{https://pkg.go.dev/github.com/perryd01/vaccination-slot/chaincode\#VaccinationSlot}{Vaccination Slot token's data model.}}
   \end{table}
 \end{center}
 
@@ -57,7 +79,7 @@ TokenId is generated as a Universal Unique Identifier. Type is actually an \emph
       Approved & bool                \\
       \hline
     \end{tabular}
-    \caption{Approval object's data model.}
+    \caption{\gopkg{\#Approval}{Approval} object's data model.}
   \end{table}
 \end{center}
 
@@ -75,27 +97,26 @@ TokenId is generated as a Universal Unique Identifier. Type is actually an \emph
       TokenId & string               \\
       \hline
     \end{tabular}
-    \caption{Transfer object's data model.}
+    \caption{\gopkg{\#Transfer}{Transfer} object's data model.}
   \end{table}
 \end{center}
 
 \newpage
 \subsection{API}
-Inherited from \href{https://eips.ethereum.org/EIPS/eip-721}{ERC-721 specification}, function names may differ. For more specific developer documentation \href{run:spec.pdf}{see generated \emph{godoc}.}
+Inherited from \href{https://eips.ethereum.org/EIPS/eip-721}{ERC-721 specification}, function names may differ. For more specific developer documentation \href{https://pkg.go.dev/github.com/perryd01/vaccination-slot/chaincode#section-documentation}{see generated \emph{godoc}.}
 \subsubsection{Callable functions}
 \begin{itemize}
-  \item \function{BalanceOf}{owner string}{int}{Returns number of tokens in owner's wallet.}
-  \item \function{OwnerOf}{tokenId string}{string}{Returns owner of token.}
-  \item \function{TransferFrom}{from string, to string, tokenId string}{bool}{Transfering a token from wallet A to wallet B (if successful). }
-  \item \function{Approve}{operator string, tokenId string}{bool}{ Change or reaffirm the approved address for an NFT. }
-  \item \function{SetApprovalForAll}{operator string, approved bool}{bool}{ Enable or disable approval for a third party ("operator") to manage
-  ///  all of `msg.sender`'s assets.  }
-  \item \function{GetApproved}{tokenId string}{string}{ Get the approved address for a single NFT }
-  \item \function{IsApprovedForAll}{owner string, operator string}{bool}{ Query if an address is an authorized operator for another address.  }
-  \item \function{ClientAccountId}{}{string}{ Returns clientAccountId string }
-  \item \function{GetSlots}{owner string}{VaccinationSlot[ ]}{ Queries vaccination slots belonging to owner.
-  }
-  \item \function{IssueSlot}{vaccine string, date string, patient string}{string}{ Create's a slot (if client is authorized) and transfers to specific patient (wallet). }
+  \item \function{\gopkg{\#VaccinationContract.BalanceOf}{BalanceOf}}{owner string}{int}{Returns number of tokens in owner's wallet.}
+  \item \function{\gopkg{\#VaccinationContract.OwnerOf}{OwnerOf}}{tokenId string}{string}{Returns owner of token.}
+  \item \function{\gopkg{\#VaccinationContract.TransferFrom}{TransferFrom}}{from string, to string, tokenId string}{bool}{Transfering a token from wallet A to wallet B (if successful). }
+  \item \function{\gopkg{\#VaccinationContract.Approve}{Approve}}{operator string, tokenId string}{bool}{ Change or reaffirm the approved address for an NFT. }
+  \item \function{\gopkg{\#VaccinationContract.SetApprovalForAll}{SetApprovalForAll}}{operator string, approved bool}{bool}{ Enable or disable approval for a third party ("operator") to manage all of `msg.sender`'s assets.  }
+  \item \function{\gopkg{\#VaccinationContract.GetApproved}{GetApproved}}{tokenId string}{string}{ Get the approved address for a single NFT }
+  \item \function{\gopkg{\#VaccinationContract.IsApprovedForALl}{IsApprovedForAll}}{owner string, operator string}{bool}{ Query if an address is an authorized operator for another address.  }
+  \item \function{\gopkg{\#VaccinationContract.ClientAccountId}{ClientAccountId}}{}{string}{ Returns clientAccountId string }
+  \item \function{\gopkg{\#VaccinationContract.GetSlots}{GetSlots}}{owner string}{VaccinationSlot[ ]}{ Queries vaccination slots belonging to owner.
+        }
+  \item \function{\gopkg{\#VaccinationContract.IssueSlot}{IssueSlot}}{vaccine string, date string, patient string}{string}{ Create's a slot (if client is authorized) and transfers to specific patient (wallet). }
 \end{itemize}
 \subsubsection{Non-callable functions}
 \begin{itemize}
@@ -116,65 +137,40 @@ A patient can trade a valid token disregarding the previous burned token. \emph{
 \subsection{Test cases}
 Doctor wallets are created when the network starts running.
 
-\subsubsection{Successful token minting}
-\paragraph*{Steps}
-\begin{enumerate}
-  \item create network
+\testStruct{Successful token minting}{  \item create network
   \item create wallet A
-  \item doctor mints token X and transfers to A
-\end{enumerate}
-\textbf{Expected outcome:} Wallet A has valid token X
+  \item doctor mints token X and transfers to A}{Wallet A has valid token X.}
 
-\subsubsection{Unauthorized token minting}
-\paragraph*{Steps}
-\begin{enumerate}
-  \item create network
+\testStruct{Unauthorized token minting}{  \item create network
   \item create wallet A
   \item create wallet B
-  \item wallet A mints token X and transfers to B
-\end{enumerate}
-\textbf{Expected outcome:} Minting unsuccessful, wallet A isn't authorized to mint tokens.
+  \item wallet A mints token X and transfers to B}{Minting unsuccessful, wallet A isn't authorized to mint tokens.}
 
-\subsubsection{Successful trading}
-\paragraph*{Steps}
-\begin{enumerate}
-  \item create network
+\testStruct{Successful trading}{  \item create network
   \item create wallet A
   \item create wallet B
   \item doctor mints token X and transfers to A
-  \item A transfers token X to wallet B
-\end{enumerate}
-\textbf{Expected outcome:} Trading successful, wallet B has token X.
+  \item A transfers token X to wallet B}{Trading successful, wallet B has token X.}
 
-\subsubsection{Trading a burned token}
-\paragraph*{Steps}
-\begin{enumerate}
-  \item create network
+\testStruct{Trading a burned token}{\item create network
   \item create wallet A
   \item create wallet B
   \item doctor mints token X and transfers to A
   \item wallet A uses token X, token get's burned by doctor
   \item A transfers token X to wallet B
-\end{enumerate}
-\textbf{Expected outcome:} Trading unsuccessful, wallet A cannot trade a burned token.
+}{Trading unsuccessful, wallet A cannot trade a burned token.}
 
-\subsubsection{Trading a token with invalid date}
-\paragraph*{Steps}
-\begin{enumerate}
+\testStruct{Trading a token with invalid date}{
   \item create network
   \item create wallet A
   \item create wallet B
   \item doctor mints token X and transfers to A
   \item A transfers token X to wallet B
-\end{enumerate}
-\textbf{Expected outcome:} Trading unsuccessful, wallet A cannot trade a token with invalid date.
+}{Trading unsuccessful, wallet A cannot trade a token with invalid date.}
 
-\subsubsection{Trading a nonexistent token}
-\paragraph*{Steps}
-\begin{enumerate}
+\testStruct{Trading a nonexistent token}{
   \item create network
   \item create wallet A
   \item create wallet B
   \item A transfers token X to wallet B
-\end{enumerate}
-\textbf{Expected outcome:} Trading unsuccessful, wallet A cannot trade a nonexistent token.
+}{Trading unsuccessful, wallet A cannot trade a nonexistent token.}
