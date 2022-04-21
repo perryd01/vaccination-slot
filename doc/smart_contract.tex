@@ -5,9 +5,9 @@
 
 
 \subsection{Design decisions}
-\emph{Our interpretation of the task.} There are doctors and users. The doctors are able to mint Vaccination Slot tokens. The doctors are able to burn \emph{(invalidate)} a token. The most important properties of a single token are: Type \emph{(of the vaccine)}, Date \emph{(when the token should be burned)}, Burned \emph{(is it used up)}, Previous \emph{(previous vaccine type the patient got)}.
+\emph{Our interpretation of the task.} There are doctors and patients. The doctors are able to mint Vaccination Slot tokens. The doctors are able to burn \emph{(invalidate)} a token. The most important properties of a single token are: Type \emph{(of the vaccine)}, Date \emph{(when the token should be burned)}, Burned \emph{(is it used up)}, Previous \emph{(previous vaccine type the patient got)}.
 
-A user can hold only one non-burned token and unlimited number of burned. A user cannot trade a burned token.
+A patient can hold only one non-burned token and unlimited number of burned. A patient cannot trade a burned token.
 
 
 \subsection{Data model}
@@ -103,5 +103,6 @@ Inherited from \href{https://eips.ethereum.org/EIPS/eip-721}{ERC-721 specificati
 
 
 \subsection{Implemention details}
+
 
 \subsection{Test cases}
