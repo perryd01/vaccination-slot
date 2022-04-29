@@ -165,11 +165,50 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 }
 
 func (c *VaccinationContract) MakeOffer(ctx contractapi.TransactionContextInterface, mySlotUuid, recipient, recipientSlotUuid string) (offerUuid string, err error) {
-	// TODO
-	return "", nil
+	mySlot, err := readVaccinationSlot(ctx, mySlotUuid)
+	if err != nil {
+		return "", fmt.Errorf("slot: %s doesn't exist", mySlotUuid)
+	}
+	recipientSlot, err := readVaccinationSlot(ctx, recipientSlotUuid)
+	if err != nil {
+		return "", fmt.Errorf("slot: %s doesn't exist", recipientSlotUuid)
+	}
+	sender, err := getSender(ctx)
+	if err != nil {
+		return "", err
+	}
+	if sender != mySlot.Owner {
+		return "", fmt.Errorf("%s doesn't own %s", sender, mySlotUuid)
+	}
+	if recipient != recipientSlot.Owner {
+		return "", fmt.Errorf("%s doesn't own %s", recipient, recipientSlotUuid)
+	}
+
+	uuidWithHyphen := uuid.New()
+	offerUuid = strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+
+	offer := TradeOffer{
+		Uuid:          offerUuid,
+		Sender:        sender,
+		SenderItem:    mySlotUuid,
+		Recipient:     recipient,
+		RecipientItem: recipientSlotUuid,
+	}
+
+	err = putOffer(ctx, offer)
+	if err != nil {
+		return "", err
+	}
+
+	return
 }
 
 func (c *VaccinationContract) AcceptOffer(ctx contractapi.TransactionContextInterface, offerUuid string) error {
+
 	// TODO
 	return nil
+}
+
+func (c *VaccinationContract) ListOffer(ctx contractapi.TransactionContextInterface) (string, error) {
+	return "", nil
 }

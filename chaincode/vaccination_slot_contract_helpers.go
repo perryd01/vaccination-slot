@@ -1,6 +1,7 @@
 package chaincode
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
@@ -113,4 +114,18 @@ func delOffer(ctx contractapi.TransactionContextInterface, offer TradeOffer) err
 	}
 
 	return nil
+}
+
+func getSender(ctx contractapi.TransactionContextInterface) (string, error) {
+	sender64, err := ctx.GetClientIdentity().GetID()
+	if err != nil {
+		return "", fmt.Errorf("failed to get ClientIdentity: %v", err)
+	}
+
+	senderBytes, err := base64.StdEncoding.DecodeString(sender64)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode sender64: %v", err)
+	}
+	sender := string(senderBytes)
+	return sender, nil
 }
