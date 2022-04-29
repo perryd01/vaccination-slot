@@ -50,7 +50,7 @@ type Transfer struct {
 // Accepting an offer:
 //  func (c *VaccinationContract) AcceptOffer(ctx contractapi.TransactionContextInterface, offerUuid string) error
 // Offers are stored in the global state as
-// offer.sender.offerUuid and offer.recipient.offerUuid.
+// offer.sender.offerUuid and offer.recipient.offerUuid offer.offerUuid.
 // This way it enables queries by partial key.
 type TradeOffer struct {
 	Uuid          string `json:"uuid"`

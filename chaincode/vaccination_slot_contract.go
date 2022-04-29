@@ -195,7 +195,7 @@ func (c *VaccinationContract) MakeOffer(ctx contractapi.TransactionContextInterf
 		RecipientItem: recipientSlotUuid,
 	}
 
-	err = putOffer(ctx, offer)
+	err = offer.put(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -204,8 +204,71 @@ func (c *VaccinationContract) MakeOffer(ctx contractapi.TransactionContextInterf
 }
 
 func (c *VaccinationContract) AcceptOffer(ctx contractapi.TransactionContextInterface, offerUuid string) error {
+	offer, err := getOffer(ctx, offerUuid)
+	if err != nil {
+		return err
+	}
+	recipient, err := getSender(ctx)
+	if recipient != offer.Recipient {
+		return fmt.Errorf("%s is not the recipient of the offer: %s", recipient, offerUuid)
+	}
+	senderSlot, err := readVaccinationSlot(ctx, offer.SenderItem)
+	if err != nil {
+		return err
+	}
+	recipientSlot, err := readVaccinationSlot(ctx, offer.RecipientItem)
+	if err != nil {
+		return err
+	}
+	if senderSlot.Owner != offer.Sender {
+		return fmt.Errorf("sender: %s doesn't own the slot", senderSlot.Owner)
+	}
+	if recipientSlot.Owner != recipient {
+		return fmt.Errorf("recipient: %s doesn't own the slot", recipient)
+	}
 
-	// TODO
+	err = senderSlot.delBalance(ctx)
+	if err != nil {
+		return err
+	}
+	err = recipientSlot.delBalance(ctx)
+	if err != nil {
+		return err
+	}
+
+	senderSlot.Approved = ""
+	recipientSlot.Approved = ""
+	senderSlot.Owner, recipientSlot.Owner = recipientSlot.Owner, senderSlot.Owner
+	senderSlot.Type, recipientSlot.Type = recipientSlot.Type, senderSlot.Type
+	senderSlot.Previous, recipientSlot.Previous = recipientSlot.Previous, senderSlot.Previous
+
+	err = senderSlot.put(ctx)
+	if err != nil {
+		return err
+	}
+	err = recipientSlot.put(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = senderSlot.putBalance(ctx)
+	if err != nil {
+		return err
+	}
+	err = recipientSlot.putBalance(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = c.emitTransfer(ctx, offer.Sender, offer.Recipient, offer.SenderItem)
+	if err != nil {
+		return err
+	}
+	err = c.emitTransfer(ctx, offer.Recipient, offer.Sender, offer.RecipientItem)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
