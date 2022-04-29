@@ -272,6 +272,18 @@ func (c *VaccinationContract) AcceptOffer(ctx contractapi.TransactionContextInte
 	return nil
 }
 
-func (c *VaccinationContract) ListOffer(ctx contractapi.TransactionContextInterface) (string, error) {
-	return "", nil
+func (c *VaccinationContract) ListOffers(ctx contractapi.TransactionContextInterface) (string, error) {
+	sender, err := getSender(ctx)
+	if err != nil {
+		return "", err
+	}
+	offers, err := getOffers(ctx, sender)
+	if err != nil {
+		return "", err
+	}
+	offersBytes, err := json.Marshal(&offers)
+	if err != nil {
+		return "", err
+	}
+	return string(offersBytes), nil
 }
