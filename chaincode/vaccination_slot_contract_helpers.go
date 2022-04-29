@@ -97,28 +97,28 @@ func (offer TradeOffer) put(ctx contractapi.TransactionContextInterface) error {
 	return putOffer(ctx, offer)
 }
 
-func getOffers(ctx contractapi.TransactionContextInterface, identity string) (offers []TradeOffer, err error) {
-	offers = make([]TradeOffer, 0)
+func getOffers(ctx contractapi.TransactionContextInterface, identity string) ([]TradeOffer, error) {
+	offers := make([]TradeOffer, 0)
 
 	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(offerPrefix, []string{identity})
 	if err != nil {
-		return
+		return offers, err
 	}
 
 	for iterator.HasNext() {
 		offerKV, err := iterator.Next()
 		if err != nil {
-			return
+			return offers, err
 		}
 		offer := &TradeOffer{}
 		err = json.Unmarshal(offerKV.Value, offer)
 		if err != nil {
-			return
+			return offers, err
 		}
 		offers = append(offers, *offer)
 	}
 
-	return
+	return offers, err
 }
 
 func getOffer(ctx contractapi.TransactionContextInterface, offerUuid string) (TradeOffer, error) {

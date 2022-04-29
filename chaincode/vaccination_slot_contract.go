@@ -63,6 +63,11 @@ func (c *VaccinationContract) GetSlots(ctx contractapi.TransactionContextInterfa
 	return string(slotsBytes), nil
 }
 
+// IssueSlot can be used by doctors to issue vaccination slots to patients.
+//
+// Vaccine must be one of the values defined VaccinationType enum.
+//
+// Date format must be 2006-01-02.
 func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterface, vaccine, date, patient string) (string, error) {
 	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
 	if err != nil {
@@ -256,6 +261,11 @@ func (c *VaccinationContract) AcceptOffer(ctx contractapi.TransactionContextInte
 		return err
 	}
 	err = recipientSlot.putBalance(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = offer.del(ctx)
 	if err != nil {
 		return err
 	}
