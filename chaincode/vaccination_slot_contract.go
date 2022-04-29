@@ -69,10 +69,6 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		return "", fmt.Errorf("failed to get client MSPID: %v", err)
 	}
 
-	//nc := config.NetworkConfig()
-	//if nc == nil {
-	//	return "", fmt.Errorf("failed reading network config")
-	//}
 	if clientMSPID != "MedicalStationMSP" {
 		return "", fmt.Errorf("client is not authorized to create slot")
 	}
@@ -109,9 +105,15 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		return "", err
 	}
 
+	vt := new(VaccinationType)
+	err = json.Unmarshal([]byte("\""+vaccine+"\""), vt)
+	if err != nil {
+		return "", err
+	}
+
 	vs := &VaccinationSlot{
 		VaccinationSlotData: VaccinationSlotData{
-			Type: vaccine,
+			Type: *vt,
 			Date: *vd,
 		},
 		TokenId: tokenUuid,
