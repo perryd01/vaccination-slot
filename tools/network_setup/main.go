@@ -83,7 +83,7 @@ func main() {
 		cmd.Env = os.Environ()
 		cmd.Env = append(cmd.Env, buf.String())
 	} else {
-		fmt.Printf("reusing previous container %s", nf.ContainerID)
+		fmt.Printf("reusing previous container %s", *nf.ContainerID)
 		cmd = exec.Command("docker", "start", *nf.ContainerID, "-i")
 		cmd.Env = os.Environ()
 	}
