@@ -28,5 +28,5 @@ func (vt *VaccinationType) UnmarshalJSON(data []byte) error {
 }
 
 func (vt *VaccinationType) MarshalJSON() ([]byte, error) {
-	return []byte(*vt), nil
+	return []byte("\"" + string(*vt) + "\""), nil
 }

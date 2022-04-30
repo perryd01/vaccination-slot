@@ -63,6 +63,11 @@ func (c *VaccinationContract) GetSlots(ctx contractapi.TransactionContextInterfa
 	return string(slotsBytes), nil
 }
 
+// IssueSlot can be used by doctors to issue vaccination slots to patients.
+//
+// Vaccine must be one of the values defined VaccinationType enum.
+//
+// Date format must be 2006-01-02.
 func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterface, vaccine, date, patient string) (string, error) {
 	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
 	if err != nil {
@@ -165,11 +170,130 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 }
 
 func (c *VaccinationContract) MakeOffer(ctx contractapi.TransactionContextInterface, mySlotUuid, recipient, recipientSlotUuid string) (offerUuid string, err error) {
-	// TODO
-	return "", nil
+	mySlot, err := readVaccinationSlot(ctx, mySlotUuid)
+	if err != nil {
+		return "", fmt.Errorf("slot: %s doesn't exist", mySlotUuid)
+	}
+	recipientSlot, err := readVaccinationSlot(ctx, recipientSlotUuid)
+	if err != nil {
+		return "", fmt.Errorf("slot: %s doesn't exist", recipientSlotUuid)
+	}
+	sender, err := getSender(ctx)
+	if err != nil {
+		return "", err
+	}
+	if sender != mySlot.Owner {
+		return "", fmt.Errorf("%s doesn't own %s", sender, mySlotUuid)
+	}
+	if recipient != recipientSlot.Owner {
+		return "", fmt.Errorf("%s doesn't own %s", recipient, recipientSlotUuid)
+	}
+
+	uuidWithHyphen := uuid.New()
+	offerUuid = strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+
+	offer := TradeOffer{
+		Uuid:          offerUuid,
+		Sender:        sender,
+		SenderItem:    mySlotUuid,
+		Recipient:     recipient,
+		RecipientItem: recipientSlotUuid,
+	}
+
+	err = offer.put(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return
 }
 
 func (c *VaccinationContract) AcceptOffer(ctx contractapi.TransactionContextInterface, offerUuid string) error {
-	// TODO
+	offer, err := getOffer(ctx, offerUuid)
+	if err != nil {
+		return err
+	}
+	recipient, err := getSender(ctx)
+	if recipient != offer.Recipient {
+		return fmt.Errorf("%s is not the recipient of the offer: %s", recipient, offerUuid)
+	}
+	senderSlot, err := readVaccinationSlot(ctx, offer.SenderItem)
+	if err != nil {
+		return err
+	}
+	recipientSlot, err := readVaccinationSlot(ctx, offer.RecipientItem)
+	if err != nil {
+		return err
+	}
+	if senderSlot.Owner != offer.Sender {
+		return fmt.Errorf("sender: %s doesn't own the slot", senderSlot.Owner)
+	}
+	if recipientSlot.Owner != recipient {
+		return fmt.Errorf("recipient: %s doesn't own the slot", recipient)
+	}
+
+	err = senderSlot.delBalance(ctx)
+	if err != nil {
+		return err
+	}
+	err = recipientSlot.delBalance(ctx)
+	if err != nil {
+		return err
+	}
+
+	senderSlot.Approved = ""
+	recipientSlot.Approved = ""
+	senderSlot.Owner, recipientSlot.Owner = recipientSlot.Owner, senderSlot.Owner
+	senderSlot.Type, recipientSlot.Type = recipientSlot.Type, senderSlot.Type
+	senderSlot.Previous, recipientSlot.Previous = recipientSlot.Previous, senderSlot.Previous
+
+	err = senderSlot.put(ctx)
+	if err != nil {
+		return err
+	}
+	err = recipientSlot.put(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = senderSlot.putBalance(ctx)
+	if err != nil {
+		return err
+	}
+	err = recipientSlot.putBalance(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = offer.del(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = c.emitTransfer(ctx, offer.Sender, offer.Recipient, offer.SenderItem)
+	if err != nil {
+		return err
+	}
+	err = c.emitTransfer(ctx, offer.Recipient, offer.Sender, offer.RecipientItem)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (c *VaccinationContract) ListOffers(ctx contractapi.TransactionContextInterface) (string, error) {
+	sender, err := getSender(ctx)
+	if err != nil {
+		return "", err
+	}
+	offers, err := getOffers(ctx, sender)
+	if err != nil {
+		return "", err
+	}
+	offersBytes, err := json.Marshal(&offers)
+	if err != nil {
+		return "", err
+	}
+	return string(offersBytes), nil
 }
