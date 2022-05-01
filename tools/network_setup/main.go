@@ -4,45 +4,39 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
-	"errors"
 	"flag"
 	"fmt"
+	"github.com/docker/go-connections/nat"
 	"log"
-	"os"
-	"os/exec"
 	"strconv"
 	"text/template"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
-
+	dc "github.com/docker/docker/api/types/container"
+	docker "github.com/docker/docker/client"
 	"github.com/perryd01/vaccination-slot/internal/config"
 )
 
-type NetworkFlags struct {
-	ContainerName *string
-	Reuse         *bool
-	HostPort      *uint
-	ImageName     *string
-	ContainerID   *string
+var nf struct {
+	ContainerName string
+	Reuse         bool
+	HostPort      uint
+	ImageName     string
+	ContainerID   string
 }
-
-func (nf *NetworkFlags) Print() {
-	fmt.Println("ContainerName:", *nf.ContainerName, "Reuse:", *nf.Reuse, "HostPort:", *nf.HostPort, "ImageName:", *nf.ImageName, "ContainerID:", *nf.ContainerID)
-}
-
-var nf NetworkFlags
 
 func init() {
 	var imageName = "ibmcom/ibp-microfab"
-	nf.Reuse = flag.Bool("reuse", false, "reuse container if exists")
-	nf.HostPort = flag.Uint("hport", 8080, "host port number")
-	nf.ContainerName = flag.String("cname", "vacc_slot", "docker ContainerName")
-	nf.ImageName = &imageName
+	flag.BoolVar(&nf.Reuse, "reuse", false, "reuse container if exists")
+	flag.UintVar(&nf.HostPort, "hport", 8080, "host port number")
+	flag.StringVar(&nf.ContainerName, "cname", "vacc_slot", "docker ContainerName")
+	nf.ImageName = imageName
 }
 
 //go:embed network.tmpl
 var networkTmpl string
+
+var client *docker.Client
 
 func main() {
 	flag.Parse()
@@ -57,104 +51,61 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(buf.String())
 
-	c, err := getPreviousContainer(*nf.ContainerName, *nf.ImageName)
+	client, err = docker.NewClientWithOpts(docker.FromEnv)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if c != nil {
-		nf.ContainerID = &c.ID
+	c, err := getPreviousContainer(nf.ContainerName, nf.ImageName)
+	if err != nil {
+		_ = fmt.Errorf("%v", err)
+	} else {
+		nf.ContainerID = c.ID
 	}
 
-	nf.Print()
+	fmt.Printf("%+v\n", nf)
 
-	var cmd *exec.Cmd
-	if nf.ContainerID == nil || *nf.Reuse == false {
-
-		err := deleteContainer("", *nf.ContainerName)
+	if !nf.Reuse || len(nf.ContainerID) == 0 {
+		if len(nf.ContainerID) > 0 {
+			if err = client.ContainerRemove(context.Background(), nf.ContainerID, types.ContainerRemoveOptions{}); err != nil {
+				log.Fatal(err)
+			}
+		}
+		container, err := client.ContainerCreate(context.Background(),
+			&dc.Config{
+				Image:        nf.ImageName,
+				Cmd:          []string{"/tini", "--", "/docker-entrypoint.sh"},
+				Env:          []string{buf.String()},
+				ExposedPorts: nat.PortSet{"8080": struct{}{}},
+			},
+			&dc.HostConfig{
+				PortBindings: nat.PortMap{"8080": {{HostIP: "0.0.0.0", HostPort: strconv.FormatUint(uint64(nf.HostPort), 10)}}},
+			}, nil, nil, nf.ContainerName)
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		// docker run -e MICROFAB_CONFIG -p 8080:8080 ibmcom/ibp-microfab
-		cmd = exec.Command("docker", "run", "--name", *nf.ContainerName, "-e", "MICROFAB_CONFIG", "-p", strconv.FormatUint(uint64(*nf.HostPort), 10)+":8080", "ibmcom/ibp-microfab")
-		cmd.Env = os.Environ()
-		cmd.Env = append(cmd.Env, buf.String())
-	} else {
-		fmt.Printf("reusing previous container %s", *nf.ContainerID)
-		cmd = exec.Command("docker", "start", *nf.ContainerID, "-i")
-		cmd.Env = os.Environ()
+		nf.ContainerID = container.ID
 	}
 
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	_ = cmd.Run()
-
+	if err = client.ContainerStart(context.Background(), nf.ContainerID, types.ContainerStartOptions{}); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func deleteContainer(ID string, name string) error {
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+func getPreviousContainer(containerName string, imageName string) (types.Container, error) {
+	containers, err := client.ContainerList(context.Background(), types.ContainerListOptions{All: true})
 	if err != nil {
-		return err
-	}
-
-	if ID == "" && name == "" {
-		return errors.New("cannot delete container with empty ID and/or Name")
-	}
-
-	if ID == "" && name != "" {
-		containers, err := getAllContainers()
-		if err != nil {
-			return err
-		}
-
-		// Get ID by name
-		for i := 0; i < len(containers); i++ {
-			if contains(containers[i].Names, "/"+name) {
-				ID = containers[i].ID
-				break
-			}
-		}
-	}
-
-	err = cli.ContainerRemove(context.Background(), ID, types.ContainerRemoveOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func getAllContainers() ([]types.Container, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv)
-	if err != nil {
-		return nil, err
-	}
-
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true})
-	if err != nil {
-		return nil, err
-	}
-
-	return containers, nil
-}
-
-func getPreviousContainer(containerName string, imageName string) (*types.Container, error) {
-	containers, err := getAllContainers()
-	if err != nil {
-		return nil, err
+		return types.Container{}, err
 	}
 
 	for _, container := range containers {
 		// container.Names start with a backslash
 		if container.Image == imageName && contains(container.Names, "/"+containerName) {
-			return &container, nil
+			return container, nil
 		}
 	}
-	return nil, nil
+	return types.Container{}, fmt.Errorf("can't find last container")
 }
 
 func contains[T string | int | uint](arr []T, e T) bool {
