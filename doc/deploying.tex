@@ -18,3 +18,24 @@ Your are going to need to set up: \emph{vscode, docker, golang}.
     \item do stuff as you would do on any other network
     \item Done.
 \end{itemize}
+
+\subsection{Network starter script}
+Execute this command to start the network.
+\begin{verbatim}$ go run ./tools/network_setup/main.go\end{verbatim}
+\subsubsection{Reuse}
+\begin{verbatim}
+    -reuse
+\end{verbatim}
+Reuse existing docker container if possible, defualt false. It will be looking for an existing stopped container that has the same \hyperref[ref:ContainerName]{Container Name} as the one you are trying to start.
+
+\subsubsection{Host Port}
+\begin{verbatim}
+    -hport=<port>
+\end{verbatim}
+Set host port for docker container, default 8080.
+
+\subsubsection{Container Name}\label{ref:ContainerName}
+\begin{verbatim}
+    -cname=<name>
+\end{verbatim}
+Set name of docker container, default "vacc{\_}slot".
