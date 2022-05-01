@@ -6,12 +6,12 @@ go run ./tools/network_setup/main.go -reuse
 
 ## ContainerName
 ```
--cname string
+-cname=<string>
 ```  
 docker ContainerName (default "vacc_slot")
 ## Host Port
 ```
--hport uint
+-hport=<uint>
 ```  
 host port number (default 8080)
 
