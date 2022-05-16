@@ -15,6 +15,8 @@ type VaccinationSlotData struct {
 	// If present it may forbid the transfer of the token.
 	// May change when the token is transferred.
 	Previous string `json:"previous,omitempty"`
+
+	Burned bool `json:"burned,omitempty"`
 }
 
 // VaccinationSlot contains ERC712 related data (this is the NFT)

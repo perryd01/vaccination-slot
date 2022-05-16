@@ -5,15 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
-	"strings"
 )
 
 // VaccinationContract is a smart contract for managing vaccination slots.
 // Implements ERC-721.
 type VaccinationContract struct {
 	contractapi.Contract
+	IdGenerator TokenIdGeneratorInterface
 }
 
 func (c *VaccinationContract) sender(ctx contractapi.TransactionContextInterface) (string, error) {
@@ -93,8 +92,9 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		}
 	}
 
-	uuidWithHyphen := uuid.New()
-	tokenUuid := strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+	//uuidWithHyphen := uuid.New()
+	//tokenUuid := strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+	tokenUuid := c.IdGenerator.Next()
 
 	exists, err := vaccinationSlotExists(ctx, tokenUuid)
 	if err != nil {
@@ -189,8 +189,9 @@ func (c *VaccinationContract) MakeOffer(ctx contractapi.TransactionContextInterf
 		return "", fmt.Errorf("%s doesn't own %s", recipient, recipientSlotUuid)
 	}
 
-	uuidWithHyphen := uuid.New()
-	offerUuid = strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+	//uuidWithHyphen := uuid.New()
+	//offerUuid = strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+	offerUuid = c.IdGenerator.Next()
 
 	offer := TradeOffer{
 		Uuid:          offerUuid,
@@ -296,4 +297,40 @@ func (c *VaccinationContract) ListOffers(ctx contractapi.TransactionContextInter
 		return "", err
 	}
 	return string(offersBytes), nil
+}
+
+func (c *VaccinationContract) DeleteOffer(ctx contractapi.TransactionContextInterface, offerUuid string) error {
+	sender, err := getSender(ctx)
+	if err != nil {
+		return err
+	}
+	offer, err := getOffer(ctx, offerUuid)
+	if err != nil {
+		return err
+	}
+	if offer.Sender == sender || offer.Recipient == sender {
+		if err = offer.del(ctx); err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("%s isn't the sender or recipient of the offer", sender)
+	}
+	return nil
+}
+
+func (c *VaccinationContract) BurnToken(ctx contractapi.TransactionContextInterface, slotUuid string) error {
+	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
+	if err != nil {
+		return fmt.Errorf("failed to get client MSPID: %v", err)
+	}
+
+	if clientMSPID != "MedicalStationMSP" {
+		return fmt.Errorf("client is not authorized to create slot")
+	}
+	slot, err := readVaccinationSlot(ctx, slotUuid)
+	if err != nil {
+		return err
+	}
+	slot.Burned = true
+	return slot.put(ctx)
 }

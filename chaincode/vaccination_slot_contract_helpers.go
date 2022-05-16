@@ -42,7 +42,9 @@ func vaccinationSlotExists(ctx contractapi.TransactionContextInterface, tokenId 
 }
 
 func getSender(ctx contractapi.TransactionContextInterface) (string, error) {
-	sender64, err := ctx.GetClientIdentity().GetID()
+	//sender64, err := ctx.GetClientIdentity().GetID()
+	id := ctx.GetClientIdentity()
+	sender64, err := id.GetID()
 	if err != nil {
 		return "", fmt.Errorf("failed to get ClientIdentity: %v", err)
 	}
