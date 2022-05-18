@@ -73,7 +73,8 @@ func (c *VaccinationContract) emitApprovalForAll(ctx contractapi.TransactionCont
 }
 
 func (c *VaccinationContract) BalanceOf(ctx contractapi.TransactionContextInterface, owner string) int {
-	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(balancePrefix, []string{owner})
+	owner64 := base64.StdEncoding.EncodeToString([]byte(owner))
+	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(balancePrefix, []string{owner64})
 	if err != nil {
 		panic("Error creating asset chaincode: " + err.Error())
 	}
@@ -146,7 +147,8 @@ func (c *VaccinationContract) TransferFrom(ctx contractapi.TransactionContextInt
 		return false, fmt.Errorf("failed to PutState vsBytes: %v", err)
 	}
 
-	balanceKeyFrom, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{from, tokenId})
+	from64 := base64.StdEncoding.EncodeToString([]byte(from))
+	balanceKeyFrom, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{from64, tokenId})
 	if err != nil {
 		return false, fmt.Errorf("failed to CreateCompositeKey: %v", err)
 	}
@@ -156,7 +158,8 @@ func (c *VaccinationContract) TransferFrom(ctx contractapi.TransactionContextInt
 		return false, fmt.Errorf("failed to DelState balanceKeyFrom %s, %v", balanceKeyFrom, err)
 	}
 
-	balanceKeyTo, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{to, tokenId})
+	to64 := base64.StdEncoding.EncodeToString([]byte(to))
+	balanceKeyTo, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{to64, tokenId})
 	if err != nil {
 		return false, fmt.Errorf("failed to create CompositeKey: %v", err)
 	}

@@ -11,7 +11,7 @@ func main() {
 	contract := &cc.VaccinationContract{
 		IdGenerator: &cc.TokenIdGenerator{},
 	}
-	contract.Info.Version = "0.1.2"
+	contract.Info.Version = "0.1.3"
 	contract.Info.Description = "VaccinationSlots chaincode"
 	contract.Info.License = &metadata.LicenseMetadata{}
 	contract.Info.License.Name = "MIT"

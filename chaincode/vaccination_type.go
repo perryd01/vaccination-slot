@@ -2,6 +2,8 @@ package chaincode
 
 import (
 	"encoding/json"
+	"log"
+	"time"
 )
 
 type VaccinationType string
@@ -29,4 +31,34 @@ func (vt *VaccinationType) UnmarshalJSON(data []byte) error {
 
 func (vt *VaccinationType) MarshalJSON() ([]byte, error) {
 	return []byte("\"" + string(*vt) + "\""), nil
+}
+
+var deadlines = map[VaccinationType]time.Duration{}
+
+func init() {
+	dAlpha, err := time.ParseDuration("720h")
+	if err != nil {
+		log.Fatal(err)
+	}
+	deadlines[Alpha] = dAlpha
+	dBravo, err := time.ParseDuration("720h")
+	if err != nil {
+		log.Fatal(err)
+	}
+	deadlines[Bravo] = dBravo
+	dCharlie, err := time.ParseDuration("720h")
+	if err != nil {
+		log.Fatal(err)
+	}
+	deadlines[Charlie] = dCharlie
+	dDelta, err := time.ParseDuration("720h")
+	if err != nil {
+		log.Fatal(err)
+	}
+	deadlines[Delta] = dDelta
+	dEcho, err := time.ParseDuration("720h")
+	if err != nil {
+		log.Fatal(err)
+	}
+	deadlines[Echo] = dEcho
 }

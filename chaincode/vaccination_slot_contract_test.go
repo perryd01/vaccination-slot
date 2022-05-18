@@ -35,6 +35,7 @@ const (
 	setEvent                      = "SetEvent"
 	getMSPID                      = "GetMSPID"
 	getID                         = "GetID"
+	delState                      = "DelState"
 )
 
 type MockStub struct {
@@ -166,8 +167,11 @@ func setupTestBalanceOf() *MockContext {
 		},
 	}
 
-	ms.On(getStateByPartialCompositeKey, balancePrefix, []string{patient1}).Return(emptyIterator, nil)
-	ms.On(getStateByPartialCompositeKey, balancePrefix, []string{patient2}).Return(iterator, nil)
+	patient164 := base64.StdEncoding.EncodeToString([]byte(patient1))
+	patient264 := base64.StdEncoding.EncodeToString([]byte(patient2))
+
+	ms.On(getStateByPartialCompositeKey, balancePrefix, []string{patient164}).Return(emptyIterator, nil)
+	ms.On(getStateByPartialCompositeKey, balancePrefix, []string{patient264}).Return(iterator, nil)
 	ms.On(getStateByPartialCompositeKey, vsPrefix, []string{}).Return(emptyIterator, nil)
 
 	mci := &MockClientIdentity{}
@@ -223,7 +227,7 @@ func TestIssueSlot(t *testing.T) {
 		c := &VaccinationContract{
 			IdGenerator: gen,
 		}
-		slot1, err := c.IssueSlot(ctx, "delta", "2000-01-01", patient1)
+		slot1, err := c.IssueSlot(ctx, "delta", "2000-01-01", patient1, "")
 		assert.Equal(t, nil, err)
 		assert.NotEmpty(t, slot1)
 		ms.AssertCalled(t, setEvent, "Transfer", mock.AnythingOfType("[]uint8"))
@@ -233,7 +237,7 @@ func TestIssueSlot(t *testing.T) {
 		c := &VaccinationContract{
 			IdGenerator: gen,
 		}
-		slot1, err := c.IssueSlot(ctx, "delta", "2000-01-01", patient1)
+		slot1, err := c.IssueSlot(ctx, "delta", "2000-01-01", patient1, "")
 		assert.Error(t, err)
 		assert.Empty(t, slot1)
 		ms.AssertNotCalled(t, setEvent, "Transfer", mock.Anything)
@@ -243,7 +247,7 @@ func TestIssueSlot(t *testing.T) {
 		c := &VaccinationContract{
 			IdGenerator: gen,
 		}
-		_, err := c.IssueSlot(ctx, "delta", "2000-01-01", patient1)
+		_, err := c.IssueSlot(ctx, "delta", "2000-01-01", patient1, "")
 		assert.Error(t, err)
 		ms.AssertNotCalled(t, setEvent, "Transfer", mock.Anything)
 	})
@@ -267,7 +271,8 @@ func setupTestIssueSlot1() (*MockContext, *MockStub, *MockTokenIdGenerator) {
 	anyBytes := mock.AnythingOfType("[]uint8")
 
 	patient1Balance := &MockIterator{}
-	ms.On(getStateByPartialCompositeKey, balancePrefix, []string{patient1}).Return(patient1Balance, nil)
+	patient164 := base64.StdEncoding.EncodeToString([]byte(patient1))
+	ms.On(getStateByPartialCompositeKey, balancePrefix, []string{patient164}).Return(patient1Balance, nil)
 	{
 		key := strings.Join([]string{vsPrefix, "slot1"}, ".")
 		ms.On(createCompositeKey, vsPrefix, []string{"slot1"}).Return(key, nil)
@@ -275,8 +280,8 @@ func setupTestIssueSlot1() (*MockContext, *MockStub, *MockTokenIdGenerator) {
 		ms.On(putState, key, anyBytes).Return(nil)
 	}
 	{
-		key := strings.Join([]string{balancePrefix, patient1, "slot1"}, ".")
-		ms.On(createCompositeKey, balancePrefix, []string{patient1, "slot1"}).Return(key, nil)
+		key := strings.Join([]string{balancePrefix, patient164, "slot1"}, ".")
+		ms.On(createCompositeKey, balancePrefix, []string{patient164, "slot1"}).Return(key, nil)
 		ms.On(putState, key, anyBytes).Return(nil)
 	}
 	ms.On(setEvent, "Transfer", anyBytes).Return(nil)
@@ -332,8 +337,10 @@ func setupTestIssueSlot3() (*MockContext, *MockStub, TokenIdGeneratorInterface) 
 
 	vsb, _ := json.Marshal(vs)
 
+	patient164 := base64.StdEncoding.EncodeToString([]byte(patient1))
+
 	{
-		key := strings.Join([]string{balancePrefix, patient1, slot1}, ".")
+		key := strings.Join([]string{balancePrefix, patient164, slot1}, ".")
 		patient1Balance := &MockIterator{
 			queries: []queryresult.KV{
 				{
@@ -342,7 +349,7 @@ func setupTestIssueSlot3() (*MockContext, *MockStub, TokenIdGeneratorInterface) 
 				},
 			},
 		}
-		ms.On(getStateByPartialCompositeKey, balancePrefix, []string{patient1}).Return(patient1Balance, nil)
+		ms.On(getStateByPartialCompositeKey, balancePrefix, []string{patient164}).Return(patient1Balance, nil)
 	}
 	{
 		key := strings.Join([]string{vsPrefix, "slot1"}, ".")
@@ -351,8 +358,8 @@ func setupTestIssueSlot3() (*MockContext, *MockStub, TokenIdGeneratorInterface) 
 		ms.On(putState, key, anyBytes).Return(nil)
 	}
 	{
-		key := strings.Join([]string{balancePrefix, patient1, "slot1"}, ".")
-		ms.On(createCompositeKey, balancePrefix, []string{patient1, "slot1"}).Return(key, nil)
+		key := strings.Join([]string{balancePrefix, patient164, "slot1"}, ".")
+		ms.On(createCompositeKey, balancePrefix, []string{patient164, "slot1"}).Return(key, nil)
 		ms.On(putState, key, anyBytes).Return(nil)
 	}
 	ms.On(setEvent, "Transfer", anyBytes).Return(nil)
@@ -437,6 +444,9 @@ func setupTestMakeOffer1(patient string) (*MockContext, *MockStub, TokenIdGenera
 	vsb1, _ := json.Marshal(&vs1)
 	vbs2, _ := json.Marshal(&vs2)
 
+	patient164 := base64.StdEncoding.EncodeToString([]byte(patient1))
+	patient264 := base64.StdEncoding.EncodeToString([]byte(patient2))
+
 	{
 		key := strings.Join([]string{vsPrefix, slot1}, ".")
 		ms.On(createCompositeKey, vsPrefix, []string{slot1}).Return(key, nil)
@@ -448,13 +458,13 @@ func setupTestMakeOffer1(patient string) (*MockContext, *MockStub, TokenIdGenera
 		ms.On(getState, key).Return(vbs2, nil)
 	}
 	{
-		key := strings.Join([]string{offerPrefix, patient1, offer1}, ".")
-		ms.On(createCompositeKey, offerPrefix, []string{patient1, offer1}).Return(key, nil)
+		key := strings.Join([]string{offerPrefix, patient164, offer1}, ".")
+		ms.On(createCompositeKey, offerPrefix, []string{patient164, offer1}).Return(key, nil)
 		ms.On(putState, key, anyBytes).Return(nil)
 	}
 	{
-		key := strings.Join([]string{offerPrefix, patient2, offer1}, ".")
-		ms.On(createCompositeKey, offerPrefix, []string{patient2, offer1}).Return(key, nil)
+		key := strings.Join([]string{offerPrefix, patient264, offer1}, ".")
+		ms.On(createCompositeKey, offerPrefix, []string{patient264, offer1}).Return(key, nil)
 		ms.On(putState, key, anyBytes).Return(nil)
 	}
 	{
@@ -476,3 +486,144 @@ func setupTestMakeOffer1(patient string) (*MockContext, *MockStub, TokenIdGenera
 }
 
 //<editor-fold>
+
+//<editor-fold desc="Test AcceptOffer">
+func TestAcceptOffer(t *testing.T) {
+	t.Run("Correct", func(t *testing.T) {
+		ctx, ms, gen := setupTestAcceptOffer1()
+		c := &VaccinationContract{
+			IdGenerator: gen,
+		}
+		err := c.AcceptOffer(ctx, offer1)
+		assert.Nil(t, err)
+		ms.AssertNumberOfCalls(t, setEvent, 2)
+	})
+}
+
+func setupTestAcceptOffer1() (*MockContext, *MockStub, TokenIdGeneratorInterface) {
+	ms := &MockStub{}
+
+	gen := &MockTokenIdGenerator{
+		[]string{offer1},
+	}
+
+	anyBytes := mock.AnythingOfType("[]uint8")
+
+	newDate := func(str string) VaccinationDate {
+		value, err := time.Parse("2006-01-02", str)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return VaccinationDate(value)
+	}
+
+	vs1 := &VaccinationSlot{
+		VaccinationSlotData: VaccinationSlotData{
+			Type: Alpha,
+			Date: newDate("2050-01-01"),
+		},
+		TokenId: slot1,
+		Owner:   patient1,
+	}
+
+	vs2 := &VaccinationSlot{
+		VaccinationSlotData: VaccinationSlotData{
+			Type: Bravo,
+			Date: newDate("2050-01-02"),
+		},
+		TokenId: slot2,
+		Owner:   patient2,
+	}
+
+	vsb1, _ := json.Marshal(&vs1)
+	vbs2, _ := json.Marshal(&vs2)
+
+	patient164 := base64.StdEncoding.EncodeToString([]byte(patient1))
+	patient264 := base64.StdEncoding.EncodeToString([]byte(patient2))
+
+	{
+		key := strings.Join([]string{vsPrefix, slot1}, ".")
+		ms.On(createCompositeKey, vsPrefix, []string{slot1}).Return(key, nil)
+		ms.On(getState, key).Return(vsb1, nil)
+		ms.On(putState, key, anyBytes).Return(nil)
+	}
+	{
+		key := strings.Join([]string{vsPrefix, slot2}, ".")
+		ms.On(createCompositeKey, vsPrefix, []string{slot2}).Return(key, nil)
+		ms.On(getState, key).Return(vbs2, nil)
+		ms.On(putState, key, anyBytes).Return(nil)
+	}
+	{
+		key := strings.Join([]string{balancePrefix, patient164, slot1}, ".")
+		ms.On(createCompositeKey, balancePrefix, []string{patient164, slot1}).Return(key, nil)
+		ms.On(delState, key).Return(nil)
+	}
+	{
+		key := strings.Join([]string{balancePrefix, patient264, slot2}, ".")
+		ms.On(createCompositeKey, balancePrefix, []string{patient264, slot2}).Return(key, nil)
+		ms.On(delState, key).Return(nil)
+	}
+	{
+		key := strings.Join([]string{balancePrefix, patient164, slot2}, ".")
+		ms.On(createCompositeKey, balancePrefix, []string{patient164, slot2}).Return(key, nil)
+		ms.On(putState, key, anyBytes).Return(nil)
+	}
+	{
+		key := strings.Join([]string{balancePrefix, patient264, slot1}, ".")
+		ms.On(createCompositeKey, balancePrefix, []string{patient264, slot1}).Return(key, nil)
+		ms.On(putState, key, anyBytes).Return(nil)
+	}
+	{
+		key := strings.Join([]string{offerPrefix, patient164, offer1}, ".")
+		ms.On(createCompositeKey, offerPrefix, []string{patient164, offer1}).Return(key, nil)
+		ms.On(delState, key).Return(nil)
+	}
+	{
+		key := strings.Join([]string{offerPrefix, patient264, offer1}, ".")
+		ms.On(createCompositeKey, offerPrefix, []string{patient264, offer1}).Return(key, nil)
+		ms.On(delState, key).Return(nil)
+	}
+	{
+		key := strings.Join([]string{offerPrefix, offer1}, ".")
+		ms.On(createCompositeKey, offerPrefix, []string{offer1}).Return(key, nil)
+		ms.On(delState, key).Return(nil)
+		offer := &TradeOffer{
+			Uuid:          offer1,
+			Sender:        patient2,
+			SenderItem:    slot2,
+			Recipient:     patient1,
+			RecipientItem: slot1,
+		}
+		offerBytes, _ := json.Marshal(offer)
+		ms.On(getState, key).Return(offerBytes, nil)
+	}
+	{
+		transfer := &Transfer{
+			From:    patient1,
+			To:      patient2,
+			TokenId: slot1,
+		}
+		transferBytes, _ := json.Marshal(transfer)
+		ms.On(setEvent, "Transfer", transferBytes).Return(nil)
+	}
+	{
+		transfer := &Transfer{
+			From:    patient2,
+			To:      patient1,
+			TokenId: slot2,
+		}
+		transferBytes, _ := json.Marshal(transfer)
+		ms.On(setEvent, "Transfer", transferBytes).Return(nil)
+	}
+
+	mci := &MockClientIdentity{}
+	mci.On(getID).Return(patient164, nil)
+
+	mc := &MockContext{}
+	mc.On(getStub).Return(ms)
+	mc.On(getClientIdentity).Return(mci)
+
+	return mc, ms, gen
+}
+
+//</editor-fold>
