@@ -3,6 +3,7 @@ package chaincode
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/hyperledger/fabric-chaincode-go/pkg/cid"
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
@@ -22,7 +23,9 @@ const (
 	slot1    = "slot1"
 	slot2    = "slot2"
 	slot3    = "slot3"
+	slot4    = "slot4"
 	offer1   = "offer1"
+	offer2   = "offer2"
 )
 
 const (
@@ -489,8 +492,32 @@ func setupTestMakeOffer1(patient string) (*MockContext, *MockStub, TokenIdGenera
 
 //<editor-fold desc="Test AcceptOffer">
 func TestAcceptOffer(t *testing.T) {
+	newDate := func(str string) VaccinationDate {
+		value, err := time.Parse("2006-01-02", str)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return VaccinationDate(value)
+	}
+	vs1 := VaccinationSlot{
+		VaccinationSlotData: VaccinationSlotData{
+			Type: Alpha,
+			Date: newDate("2050-02-01"),
+		},
+		TokenId: slot1,
+		Owner:   patient1,
+	}
+
+	vs2 := VaccinationSlot{
+		VaccinationSlotData: VaccinationSlotData{
+			Type: Bravo,
+			Date: newDate("2050-02-02"),
+		},
+		TokenId: slot2,
+		Owner:   patient2,
+	}
 	t.Run("Correct", func(t *testing.T) {
-		ctx, ms, gen := setupTestAcceptOffer1()
+		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
 		c := &VaccinationContract{
 			IdGenerator: gen,
 		}
@@ -498,9 +525,66 @@ func TestAcceptOffer(t *testing.T) {
 		assert.Nil(t, err)
 		ms.AssertNumberOfCalls(t, setEvent, 2)
 	})
+	t.Run("Offer doesn't exists", func(t *testing.T) {
+		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		c := &VaccinationContract{
+			IdGenerator: gen,
+		}
+		err := c.AcceptOffer(ctx, offer2)
+		assert.Error(t, err)
+		anyBytes := mock.AnythingOfType("[]uint8")
+		ms.AssertNotCalled(t, setEvent, "Transfer", anyBytes)
+	})
+	t.Run("Past", func(t *testing.T) {
+		vs1 := vs1
+		vs1.Date = newDate("2000-04-25")
+		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		c := &VaccinationContract{
+			IdGenerator: gen,
+		}
+		err := c.AcceptOffer(ctx, offer1)
+		assert.Error(t, err)
+		anyBytes := mock.AnythingOfType("[]uint8")
+		ms.AssertNotCalled(t, setEvent, "Transfer", anyBytes)
+	})
+	t.Run("Burned", func(t *testing.T) {
+		vs1 := vs1
+		vs1.Burned = true
+		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		c := &VaccinationContract{
+			IdGenerator: gen,
+		}
+		err := c.AcceptOffer(ctx, offer1)
+		assert.Error(t, err)
+		anyBytes := mock.AnythingOfType("[]uint8")
+		ms.AssertNotCalled(t, setEvent, "Transfer", anyBytes)
+	})
+	t.Run("Deadline 1", func(t *testing.T) {
+		vs1 := vs1
+		vs1.Previous = slot3
+		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		c := &VaccinationContract{
+			IdGenerator: gen,
+		}
+		err := c.AcceptOffer(ctx, offer1)
+		assert.Nil(t, err)
+		ms.AssertNumberOfCalls(t, setEvent, 2)
+	})
+	t.Run("Deadline 2", func(t *testing.T) {
+		vs1 := vs1
+		vs1.Previous = slot4
+		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		c := &VaccinationContract{
+			IdGenerator: gen,
+		}
+		err := c.AcceptOffer(ctx, offer1)
+		assert.Error(t, err)
+		anyBytes := mock.AnythingOfType("[]uint8")
+		ms.AssertNotCalled(t, setEvent, "Transfer", anyBytes)
+	})
 }
 
-func setupTestAcceptOffer1() (*MockContext, *MockStub, TokenIdGeneratorInterface) {
+func setupTestAcceptOffer1(vs1 VaccinationSlot, vs2 VaccinationSlot) (*MockContext, *MockStub, TokenIdGeneratorInterface) {
 	ms := &MockStub{}
 
 	gen := &MockTokenIdGenerator{
@@ -508,6 +592,9 @@ func setupTestAcceptOffer1() (*MockContext, *MockStub, TokenIdGeneratorInterface
 	}
 
 	anyBytes := mock.AnythingOfType("[]uint8")
+
+	vsb1, _ := json.Marshal(&vs1)
+	vsb2, _ := json.Marshal(&vs2)
 
 	newDate := func(str string) VaccinationDate {
 		value, err := time.Parse("2006-01-02", str)
@@ -517,26 +604,25 @@ func setupTestAcceptOffer1() (*MockContext, *MockStub, TokenIdGeneratorInterface
 		return VaccinationDate(value)
 	}
 
-	vs1 := &VaccinationSlot{
+	vs3 := VaccinationSlot{
 		VaccinationSlotData: VaccinationSlotData{
 			Type: Alpha,
-			Date: newDate("2050-01-01"),
+			Date: newDate("2050-01-15"),
+		},
+		TokenId: slot1,
+		Owner:   patient1,
+	}
+	vs4 := VaccinationSlot{
+		VaccinationSlotData: VaccinationSlotData{
+			Type: Alpha,
+			Date: newDate("2049-01-01"),
 		},
 		TokenId: slot1,
 		Owner:   patient1,
 	}
 
-	vs2 := &VaccinationSlot{
-		VaccinationSlotData: VaccinationSlotData{
-			Type: Bravo,
-			Date: newDate("2050-01-02"),
-		},
-		TokenId: slot2,
-		Owner:   patient2,
-	}
-
-	vsb1, _ := json.Marshal(&vs1)
-	vbs2, _ := json.Marshal(&vs2)
+	vsb3, _ := json.Marshal(&vs3)
+	vsb4, _ := json.Marshal(&vs4)
 
 	patient164 := base64.StdEncoding.EncodeToString([]byte(patient1))
 	patient264 := base64.StdEncoding.EncodeToString([]byte(patient2))
@@ -550,8 +636,18 @@ func setupTestAcceptOffer1() (*MockContext, *MockStub, TokenIdGeneratorInterface
 	{
 		key := strings.Join([]string{vsPrefix, slot2}, ".")
 		ms.On(createCompositeKey, vsPrefix, []string{slot2}).Return(key, nil)
-		ms.On(getState, key).Return(vbs2, nil)
+		ms.On(getState, key).Return(vsb2, nil)
 		ms.On(putState, key, anyBytes).Return(nil)
+	}
+	{
+		key := strings.Join([]string{vsPrefix, slot3}, ".")
+		ms.On(createCompositeKey, vsPrefix, []string{slot3}).Return(key, nil)
+		ms.On(getState, key).Return(vsb3, nil)
+	}
+	{
+		key := strings.Join([]string{vsPrefix, slot4}, ".")
+		ms.On(createCompositeKey, vsPrefix, []string{slot4}).Return(key, nil)
+		ms.On(getState, key).Return(vsb4, nil)
 	}
 	{
 		key := strings.Join([]string{balancePrefix, patient164, slot1}, ".")
@@ -596,6 +692,11 @@ func setupTestAcceptOffer1() (*MockContext, *MockStub, TokenIdGeneratorInterface
 		}
 		offerBytes, _ := json.Marshal(offer)
 		ms.On(getState, key).Return(offerBytes, nil)
+	}
+	{
+		key := strings.Join([]string{offerPrefix, offer2}, ".")
+		ms.On(createCompositeKey, offerPrefix, []string{offer2}).Return(key, nil)
+		ms.On(getState, key).Return([]byte{}, fmt.Errorf("not found"))
 	}
 	{
 		transfer := &Transfer{
