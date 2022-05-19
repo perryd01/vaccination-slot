@@ -20,6 +20,7 @@ const (
 	doctor1  = "x509::CN=Doctor1,OU=client::CN=MedicalStation CA"
 	patient1 = "x509::CN=Patient1,OU=client::CN=Patients CA"
 	patient2 = "x509::CN=Patient2,OU=client::CN=Patients CA"
+	patient3 = "x509::CN=Patient3,OU=client::CN=Patients CA"
 	slot1    = "slot1"
 	slot2    = "slot2"
 	slot3    = "slot3"
@@ -728,3 +729,90 @@ func setupTestAcceptOffer1(vs1 VaccinationSlot, vs2 VaccinationSlot) (*MockConte
 }
 
 //</editor-fold>
+
+//<editor-fold desc="Test ListOffers">
+func TestListOffer(t *testing.T) {
+	t.Run("Patient1 2 slot", func(t *testing.T) {
+		ctx, _ := setupTestListOffers(patient1)
+		c := &VaccinationContract{}
+		offersStr, err := c.ListOffers(ctx)
+		assert.Nil(t, err)
+		offers := make([]TradeOffer, 0)
+		err = json.Unmarshal([]byte(offersStr), &offers)
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(offers))
+	})
+	t.Run("Patient2 2 slot", func(t *testing.T) {
+		ctx, _ := setupTestListOffers(patient2)
+		c := &VaccinationContract{}
+		offersStr, err := c.ListOffers(ctx)
+		assert.Nil(t, err)
+		offers := make([]TradeOffer, 0)
+		err = json.Unmarshal([]byte(offersStr), &offers)
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(offers))
+	})
+	t.Run("Patient3 0 slot", func(t *testing.T) {
+		ctx, _ := setupTestListOffers(patient3)
+		c := &VaccinationContract{}
+		offersStr, err := c.ListOffers(ctx)
+		assert.Nil(t, err)
+		offers := make([]TradeOffer, 0)
+		err = json.Unmarshal([]byte(offersStr), &offers)
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(offers))
+	})
+}
+
+func setupTestListOffers(patient string) (*MockContext, *MockStub) {
+	ms := &MockStub{}
+
+	patient164 := base64.StdEncoding.EncodeToString([]byte(patient1))
+	patient264 := base64.StdEncoding.EncodeToString([]byte(patient2))
+	patient364 := base64.StdEncoding.EncodeToString([]byte(patient3))
+
+	{
+		tOffer1 := &TradeOffer{
+			Uuid:          offer1,
+			Sender:        patient1,
+			SenderItem:    slot1,
+			Recipient:     patient2,
+			RecipientItem: slot2,
+		}
+		offer1Bytes, _ := json.Marshal(tOffer1)
+		tOffer2 := &TradeOffer{
+			Uuid:          offer2,
+			Sender:        patient2,
+			SenderItem:    slot3,
+			Recipient:     patient1,
+			RecipientItem: slot1,
+		}
+		offer2Bytes, _ := json.Marshal(tOffer2)
+		it := &MockIterator{queries: []queryresult.KV{
+			{
+				Value: offer1Bytes,
+			},
+			{
+				Value: offer2Bytes,
+			},
+		}}
+		ms.On(getStateByPartialCompositeKey, offerPrefix, []string{patient164}).Return(it, nil)
+		ms.On(getStateByPartialCompositeKey, offerPrefix, []string{patient264}).Return(it, nil)
+	}
+	{
+		it := &MockIterator{}
+		ms.On(getStateByPartialCompositeKey, offerPrefix, []string{patient364}).Return(it, nil)
+	}
+
+	patient64 := base64.StdEncoding.EncodeToString([]byte(patient))
+	mci := &MockClientIdentity{}
+	mci.On(getID).Return(patient64, nil)
+
+	mc := &MockContext{}
+	mc.On(getStub).Return(ms)
+	mc.On(getClientIdentity).Return(mci)
+
+	return mc, ms
+}
+
+//<editor-fold>
