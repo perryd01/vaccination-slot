@@ -114,9 +114,13 @@ Inherited from \href{https://eips.ethereum.org/EIPS/eip-721}{ERC-721 specificati
   \item \function{\gopkg{\#VaccinationContract.GetApproved}{GetApproved}}{tokenId string}{string}{ Get the approved address for a single NFT }
   \item \function{\gopkg{\#VaccinationContract.IsApprovedForALl}{IsApprovedForAll}}{owner string, operator string}{bool}{ Query if an address is an authorized operator for another address.  }
   \item \function{\gopkg{\#VaccinationContract.ClientAccountId}{ClientAccountId}}{}{string}{ Returns clientAccountId string }
-  \item \function{\gopkg{\#VaccinationContract.GetSlots}{GetSlots}}{owner string}{VaccinationSlot[ ]}{ Queries vaccination slots belonging to owner.
-        }
+  \item \function{\gopkg{\#VaccinationContract.GetSlots}{GetSlots}}{owner string}{VaccinationSlot[ ]}{ Queries vaccination slots belonging to owner.}
   \item \function{\gopkg{\#VaccinationContract.IssueSlot}{IssueSlot}}{vaccine string, date string, patient string}{string}{ Create's a slot (if client is authorized) and transfers to specific patient (wallet). }
+  \item \function{\gopkg{\#VaccinationContract.MakeOffer}{MakeOffer}}{mySlotUuid, recipient, recipientSlotUuid string}{offerUuid string}{ Create an offer. }
+  \item \function{\gopkg{\#VaccinationContract.AcceptOffer}{AcceptOffer}}{offerUuid string}{}{ Accept an offer. }
+  \item \function{\gopkg{\#VaccinationContract.ListOffers}{ListOffers}}{}{string}{ List available offers. }
+  \item \function{\gopkg{\#VaccinationContract.DeleteOffer}{DeleteOffer}}{offerUuid string}{}{ List available offers. }
+  \item \function{\gopkg{\#VaccinationContract.BurnToken}{BurnToken}}{slotUuid string}{}{  }
 \end{itemize}
 \subsubsection{Non-callable functions}
 \begin{itemize}
