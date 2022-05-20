@@ -31,6 +31,9 @@
 
 A patient can hold only one non-burned token and unlimited number of burned. A patient cannot trade a burned token.
 
+\subsubsection{Trading Offers}
+A patient can send an offer to another patient about trading a valid token for another. The offer can be accepted or declined. If the necessary conditions are available, the trade will be successful.
+The offer will result in an error if any of the participants doesn't own the token mentioned in the offer or trying to trade burned tokens.
 
 \subsection{Data model}
 TokenId is generated as a Universal Unique Identifier. Type is actually an \emph{enum} and it can be any of the following:
