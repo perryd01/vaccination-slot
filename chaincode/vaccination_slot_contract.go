@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 	"time"
+
+	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
 // VaccinationContract is a smart contract for managing vaccination slots.
@@ -47,6 +48,9 @@ func (c *VaccinationContract) getSlots(ctx contractapi.TransactionContextInterfa
 			return nil, errors.New("failure while iterating")
 		}
 		vs, err := readVaccinationSlot(ctx, string(slot.Value))
+		if err != nil {
+			return nil, errors.New("error reading vaccinationSlot")
+		}
 		slots = append(slots, vs)
 	}
 	return slots, nil
@@ -217,6 +221,9 @@ func (c *VaccinationContract) AcceptOffer(ctx contractapi.TransactionContextInte
 		return err
 	}
 	recipient, err := getSender(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting sender in offer")
+	}
 	if recipient != offer.Recipient {
 		return fmt.Errorf("%s is not the recipient of the offer: %s", recipient, offerUuid)
 	}
