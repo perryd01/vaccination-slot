@@ -42,7 +42,9 @@ func vaccinationSlotExists(ctx contractapi.TransactionContextInterface, tokenId 
 }
 
 func getSender(ctx contractapi.TransactionContextInterface) (string, error) {
-	sender64, err := ctx.GetClientIdentity().GetID()
+	//sender64, err := ctx.GetClientIdentity().GetID()
+	id := ctx.GetClientIdentity()
+	sender64, err := id.GetID()
 	if err != nil {
 		return "", fmt.Errorf("failed to get ClientIdentity: %v", err)
 	}
@@ -56,16 +58,19 @@ func getSender(ctx contractapi.TransactionContextInterface) (string, error) {
 }
 
 func putOffer(ctx contractapi.TransactionContextInterface, offer TradeOffer) error {
+	sender64 := base64.StdEncoding.EncodeToString([]byte(offer.Sender))
+	recipient64 := base64.StdEncoding.EncodeToString([]byte(offer.Recipient))
+
 	offerBytes, err := json.Marshal(&offer)
 	if err != nil {
 		return err
 	}
 
-	keySender, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{offer.Sender, offer.Uuid})
+	keySender, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{sender64, offer.Uuid})
 	if err != nil {
 		return err
 	}
-	keyRecipient, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{offer.Recipient, offer.Uuid})
+	keyRecipient, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{recipient64, offer.Uuid})
 	if err != nil {
 		return err
 	}
@@ -100,7 +105,9 @@ func (offer TradeOffer) put(ctx contractapi.TransactionContextInterface) error {
 func getOffers(ctx contractapi.TransactionContextInterface, identity string) ([]TradeOffer, error) {
 	offers := make([]TradeOffer, 0)
 
-	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(offerPrefix, []string{identity})
+	identity64 := base64.StdEncoding.EncodeToString([]byte(identity))
+
+	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(offerPrefix, []string{identity64})
 	if err != nil {
 		return offers, err
 	}
@@ -139,11 +146,14 @@ func getOffer(ctx contractapi.TransactionContextInterface, offerUuid string) (Tr
 }
 
 func delOffer(ctx contractapi.TransactionContextInterface, offer TradeOffer) error {
-	keySender, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{offer.Sender, offer.Uuid})
+	sender64 := base64.StdEncoding.EncodeToString([]byte(offer.Sender))
+	recipient64 := base64.StdEncoding.EncodeToString([]byte(offer.Recipient))
+
+	keySender, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{sender64, offer.Uuid})
 	if err != nil {
 		return err
 	}
-	keyRecipient, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{offer.Recipient, offer.Uuid})
+	keyRecipient, err := ctx.GetStub().CreateCompositeKey(offerPrefix, []string{recipient64, offer.Uuid})
 	if err != nil {
 		return err
 	}
@@ -194,7 +204,8 @@ func (slot *VaccinationSlot) put(ctx contractapi.TransactionContextInterface) er
 }
 
 func (slot *VaccinationSlot) putBalance(ctx contractapi.TransactionContextInterface) error {
-	key, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{slot.Owner, slot.TokenId})
+	owner64 := base64.StdEncoding.EncodeToString([]byte(slot.Owner))
+	key, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{owner64, slot.TokenId})
 	if err != nil {
 		return fmt.Errorf("failed to CreateCompositeKey: %v", err)
 	}
@@ -206,7 +217,8 @@ func (slot *VaccinationSlot) putBalance(ctx contractapi.TransactionContextInterf
 }
 
 func (slot *VaccinationSlot) delBalance(ctx contractapi.TransactionContextInterface) error {
-	key, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{slot.Owner, slot.TokenId})
+	owner64 := base64.StdEncoding.EncodeToString([]byte(slot.Owner))
+	key, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{owner64, slot.TokenId})
 	if err != nil {
 		return fmt.Errorf("failed to CreateCompositeKey: %v", err)
 	}

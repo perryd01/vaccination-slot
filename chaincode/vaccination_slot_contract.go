@@ -5,15 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
-	"strings"
+	"time"
 )
 
 // VaccinationContract is a smart contract for managing vaccination slots.
 // Implements ERC-721.
 type VaccinationContract struct {
 	contractapi.Contract
+	IdGenerator TokenIdGeneratorInterface
 }
 
 func (c *VaccinationContract) sender(ctx contractapi.TransactionContextInterface) (string, error) {
@@ -34,7 +34,8 @@ func (c *VaccinationContract) ClientAccountId(ctx contractapi.TransactionContext
 
 // GetSlots queries vaccination slots belonging to owner
 func (c *VaccinationContract) getSlots(ctx contractapi.TransactionContextInterface, owner string) ([]*VaccinationSlot, error) {
-	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(balancePrefix, []string{owner})
+	owner64 := base64.StdEncoding.EncodeToString([]byte(owner))
+	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(balancePrefix, []string{owner64})
 	if err != nil {
 		panic("Error creating asset chaincode: " + err.Error())
 	}
@@ -68,7 +69,7 @@ func (c *VaccinationContract) GetSlots(ctx contractapi.TransactionContextInterfa
 // Vaccine must be one of the values defined VaccinationType enum.
 //
 // Date format must be 2006-01-02.
-func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterface, vaccine, date, patient string) (string, error) {
+func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterface, vaccine, date, patient, previous string) (string, error) {
 	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
 	if err != nil {
 		return "", fmt.Errorf("failed to get client MSPID: %v", err)
@@ -93,8 +94,7 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		}
 	}
 
-	uuidWithHyphen := uuid.New()
-	tokenUuid := strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+	tokenUuid := c.IdGenerator.Next()
 
 	exists, err := vaccinationSlotExists(ctx, tokenUuid)
 	if err != nil {
@@ -118,8 +118,9 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 
 	vs := &VaccinationSlot{
 		VaccinationSlotData: VaccinationSlotData{
-			Type: *vt,
-			Date: *vd,
+			Type:     *vt,
+			Date:     *vd,
+			Previous: previous,
 		},
 		TokenId: tokenUuid,
 		Owner:   patient,
@@ -140,7 +141,8 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		return "", fmt.Errorf("failed to put state: %v", err)
 	}
 
-	balanceKey, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{patient, tokenUuid})
+	patient64 := base64.StdEncoding.EncodeToString([]byte(patient))
+	balanceKey, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{patient64, tokenUuid})
 	if err != nil {
 		return "", fmt.Errorf("failed to create composite key: %v", err)
 	}
@@ -189,8 +191,9 @@ func (c *VaccinationContract) MakeOffer(ctx contractapi.TransactionContextInterf
 		return "", fmt.Errorf("%s doesn't own %s", recipient, recipientSlotUuid)
 	}
 
-	uuidWithHyphen := uuid.New()
-	offerUuid = strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+	//uuidWithHyphen := uuid.New()
+	//offerUuid = strings.Replace(uuidWithHyphen.String(), "-", "", -1)
+	offerUuid = c.IdGenerator.Next()
 
 	offer := TradeOffer{
 		Uuid:          offerUuid,
@@ -230,6 +233,49 @@ func (c *VaccinationContract) AcceptOffer(ctx contractapi.TransactionContextInte
 	}
 	if recipientSlot.Owner != recipient {
 		return fmt.Errorf("recipient: %s doesn't own the slot", recipient)
+	}
+
+	if senderSlot.Burned {
+		return fmt.Errorf("sender slot is burned")
+	}
+
+	if recipientSlot.Burned {
+		return fmt.Errorf("recipient slot is burned")
+	}
+
+	if time.Time(senderSlot.Date).Before(time.Now()) {
+		return fmt.Errorf("sender slot has expired") // Lehetne szebben, valaki pls
+	}
+	if time.Time(recipientSlot.Date).Before(time.Now()) {
+		return fmt.Errorf("recipient slot has expired")
+	}
+
+	if len(senderSlot.Previous) > 0 {
+		prev, err := readVaccinationSlot(ctx, senderSlot.Previous)
+		if err != nil {
+			return fmt.Errorf("sender previous slot present but can't be read: %v", err)
+		}
+		deadlineDuration, ok := deadlines[prev.Type]
+		if !ok {
+			return fmt.Errorf("can't find deadline for: %s", string(prev.Type))
+		}
+		if time.Time(prev.Date).Add(deadlineDuration).Before(time.Time(recipientSlot.Date)) {
+			return fmt.Errorf("recipient slot's date it too late")
+		}
+	}
+
+	if len(recipientSlot.Previous) > 0 {
+		prev, err := readVaccinationSlot(ctx, recipientSlot.Previous)
+		if err != nil {
+			return fmt.Errorf("sender previous slot present but can't be read: %v", err)
+		}
+		deadlineDuration, ok := deadlines[prev.Type]
+		if !ok {
+			return fmt.Errorf("can't find deadline for: %s", string(prev.Type))
+		}
+		if time.Time(prev.Date).Add(deadlineDuration).Before(time.Time(senderSlot.Date)) {
+			return fmt.Errorf("sender slot's date it too late")
+		}
 	}
 
 	err = senderSlot.delBalance(ctx)
@@ -296,4 +342,40 @@ func (c *VaccinationContract) ListOffers(ctx contractapi.TransactionContextInter
 		return "", err
 	}
 	return string(offersBytes), nil
+}
+
+func (c *VaccinationContract) DeleteOffer(ctx contractapi.TransactionContextInterface, offerUuid string) error {
+	sender, err := getSender(ctx)
+	if err != nil {
+		return err
+	}
+	offer, err := getOffer(ctx, offerUuid)
+	if err != nil {
+		return err
+	}
+	if offer.Sender == sender || offer.Recipient == sender {
+		if err = offer.del(ctx); err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("%s isn't the sender or recipient of the offer", sender)
+	}
+	return nil
+}
+
+func (c *VaccinationContract) BurnToken(ctx contractapi.TransactionContextInterface, slotUuid string) error {
+	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
+	if err != nil {
+		return fmt.Errorf("failed to get client MSPID: %v", err)
+	}
+
+	if clientMSPID != "MedicalStationMSP" {
+		return fmt.Errorf("client is not authorized to create slot")
+	}
+	slot, err := readVaccinationSlot(ctx, slotUuid)
+	if err != nil {
+		return err
+	}
+	slot.Burned = true
+	return slot.put(ctx)
 }
