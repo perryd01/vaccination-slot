@@ -4,20 +4,20 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/hyperledger/fabric-chaincode-go/pkg/cid"
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"log"
-	"strings"
-	"testing"
-	"time"
 )
 
 const (
-	doctor1  = "x509::CN=Doctor1,OU=client::CN=MedicalStation CA"
 	patient1 = "x509::CN=Patient1,OU=client::CN=Patients CA"
 	patient2 = "x509::CN=Patient2,OU=client::CN=Patients CA"
 	patient3 = "x509::CN=Patient3,OU=client::CN=Patients CA"
@@ -518,7 +518,7 @@ func TestAcceptOffer(t *testing.T) {
 		Owner:   patient2,
 	}
 	t.Run("Correct", func(t *testing.T) {
-		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		ctx, ms, gen, _ := setupTestAcceptOffer1(vs1, vs2)
 		c := &VaccinationContract{
 			IdGenerator: gen,
 		}
@@ -527,7 +527,7 @@ func TestAcceptOffer(t *testing.T) {
 		ms.AssertNumberOfCalls(t, setEvent, 2)
 	})
 	t.Run("Offer doesn't exists", func(t *testing.T) {
-		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		ctx, ms, gen, _ := setupTestAcceptOffer1(vs1, vs2)
 		c := &VaccinationContract{
 			IdGenerator: gen,
 		}
@@ -539,7 +539,7 @@ func TestAcceptOffer(t *testing.T) {
 	t.Run("Past", func(t *testing.T) {
 		vs1 := vs1
 		vs1.Date = newDate("2000-04-25")
-		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		ctx, ms, gen, _ := setupTestAcceptOffer1(vs1, vs2)
 		c := &VaccinationContract{
 			IdGenerator: gen,
 		}
@@ -551,7 +551,7 @@ func TestAcceptOffer(t *testing.T) {
 	t.Run("Burned", func(t *testing.T) {
 		vs1 := vs1
 		vs1.Burned = true
-		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		ctx, ms, gen, _ := setupTestAcceptOffer1(vs1, vs2)
 		c := &VaccinationContract{
 			IdGenerator: gen,
 		}
@@ -563,18 +563,20 @@ func TestAcceptOffer(t *testing.T) {
 	t.Run("Deadline 1", func(t *testing.T) {
 		vs1 := vs1
 		vs1.Previous = slot3
-		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		ctx, ms, gen, vsb22 := setupTestAcceptOffer1(vs1, vs2)
 		c := &VaccinationContract{
 			IdGenerator: gen,
 		}
 		err := c.AcceptOffer(ctx, offer1)
 		assert.Nil(t, err)
+		key := strings.Join([]string{vsPrefix, slot2}, ".")
+		ms.AssertCalled(t, putState, key, vsb22)
 		ms.AssertNumberOfCalls(t, setEvent, 2)
 	})
 	t.Run("Deadline 2", func(t *testing.T) {
 		vs1 := vs1
 		vs1.Previous = slot4
-		ctx, ms, gen := setupTestAcceptOffer1(vs1, vs2)
+		ctx, ms, gen, _ := setupTestAcceptOffer1(vs1, vs2)
 		c := &VaccinationContract{
 			IdGenerator: gen,
 		}
@@ -585,7 +587,7 @@ func TestAcceptOffer(t *testing.T) {
 	})
 }
 
-func setupTestAcceptOffer1(vs1 VaccinationSlot, vs2 VaccinationSlot) (*MockContext, *MockStub, TokenIdGeneratorInterface) {
+func setupTestAcceptOffer1(vs1 VaccinationSlot, vs2 VaccinationSlot) (*MockContext, *MockStub, TokenIdGeneratorInterface, []byte) {
 	ms := &MockStub{}
 
 	gen := &MockTokenIdGenerator{
@@ -610,7 +612,7 @@ func setupTestAcceptOffer1(vs1 VaccinationSlot, vs2 VaccinationSlot) (*MockConte
 			Type: Alpha,
 			Date: newDate("2050-01-15"),
 		},
-		TokenId: slot1,
+		TokenId: slot3,
 		Owner:   patient1,
 	}
 	vs4 := VaccinationSlot{
@@ -618,12 +620,18 @@ func setupTestAcceptOffer1(vs1 VaccinationSlot, vs2 VaccinationSlot) (*MockConte
 			Type: Alpha,
 			Date: newDate("2049-01-01"),
 		},
-		TokenId: slot1,
+		TokenId: slot4,
 		Owner:   patient1,
 	}
 
 	vsb3, _ := json.Marshal(&vs3)
 	vsb4, _ := json.Marshal(&vs4)
+
+	vs22 := vs2
+	vs22.Type = vs1.Type
+	vs22.Owner = patient1
+	vs22.Previous = slot3
+	vsb22, _ := json.Marshal(&vs22)
 
 	patient164 := base64.StdEncoding.EncodeToString([]byte(patient1))
 	patient264 := base64.StdEncoding.EncodeToString([]byte(patient2))
@@ -638,6 +646,7 @@ func setupTestAcceptOffer1(vs1 VaccinationSlot, vs2 VaccinationSlot) (*MockConte
 		key := strings.Join([]string{vsPrefix, slot2}, ".")
 		ms.On(createCompositeKey, vsPrefix, []string{slot2}).Return(key, nil)
 		ms.On(getState, key).Return(vsb2, nil)
+		ms.On(putState, key, vsb22).Return(nil)
 		ms.On(putState, key, anyBytes).Return(nil)
 	}
 	{
@@ -725,7 +734,7 @@ func setupTestAcceptOffer1(vs1 VaccinationSlot, vs2 VaccinationSlot) (*MockConte
 	mc.On(getStub).Return(ms)
 	mc.On(getClientIdentity).Return(mci)
 
-	return mc, ms, gen
+	return mc, ms, gen, vsb22
 }
 
 //</editor-fold>

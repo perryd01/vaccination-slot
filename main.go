@@ -1,10 +1,11 @@
 package main
 
 import (
+	"log"
+
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 	"github.com/hyperledger/fabric-contract-api-go/metadata"
 	cc "github.com/perryd01/vaccination-slot/chaincode"
-	"log"
 )
 
 func main() {

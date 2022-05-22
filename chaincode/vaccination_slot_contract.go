@@ -130,46 +130,16 @@ func (c *VaccinationContract) IssueSlot(ctx contractapi.TransactionContextInterf
 		Owner:   patient,
 	}
 
-	vsKey, err := ctx.GetStub().CreateCompositeKey(vsPrefix, []string{tokenUuid})
+	err = vs.put(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to create composite key: %v", err)
+		return "", err
 	}
 
-	vsBytes, err := json.Marshal(vs)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal vs: %v", err)
-	}
+	err = vs.putBalance(ctx)
 
-	err = ctx.GetStub().PutState(vsKey, vsBytes)
+	err = c.emitTransfer(ctx, "", patient, tokenUuid)
 	if err != nil {
-		return "", fmt.Errorf("failed to put state: %v", err)
-	}
-
-	patient64 := base64.StdEncoding.EncodeToString([]byte(patient))
-	balanceKey, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{patient64, tokenUuid})
-	if err != nil {
-		return "", fmt.Errorf("failed to create composite key: %v", err)
-	}
-
-	err = ctx.GetStub().PutState(balanceKey, []byte(tokenUuid))
-	if err != nil {
-		return "", fmt.Errorf("failed to put state balanceKey: %v", err)
-	}
-
-	transferEvent := &Transfer{
-		From:    "",
-		To:      patient,
-		TokenId: tokenUuid,
-	}
-
-	transferEventBytes, err := json.Marshal(transferEvent)
-	if err != nil {
-		return "", fmt.Errorf("failed to marhsal trasferEvent: %v", err)
-	}
-
-	err = ctx.GetStub().SetEvent("Transfer", transferEventBytes)
-	if err != nil {
-		return "", fmt.Errorf("failed to set event Transfer: %v", err)
+		return "", err
 	}
 
 	return tokenUuid, nil
@@ -195,8 +165,6 @@ func (c *VaccinationContract) MakeOffer(ctx contractapi.TransactionContextInterf
 		return "", fmt.Errorf("%s doesn't own %s", recipient, recipientSlotUuid)
 	}
 
-	//uuidWithHyphen := uuid.New()
-	//offerUuid = strings.Replace(uuidWithHyphen.String(), "-", "", -1)
 	offerUuid = c.IdGenerator.Next()
 
 	offer := TradeOffer{
@@ -251,7 +219,7 @@ func (c *VaccinationContract) AcceptOffer(ctx contractapi.TransactionContextInte
 	}
 
 	if time.Time(senderSlot.Date).Before(time.Now()) {
-		return fmt.Errorf("sender slot has expired") // Lehetne szebben, valaki pls
+		return fmt.Errorf("sender slot has expired")
 	}
 	if time.Time(recipientSlot.Date).Before(time.Now()) {
 		return fmt.Errorf("recipient slot has expired")
