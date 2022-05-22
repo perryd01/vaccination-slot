@@ -98,7 +98,7 @@ func (c *VaccinationContract) OwnerOf(ctx contractapi.TransactionContextInterfac
 	return vs.Owner, nil
 }
 
-func (c *VaccinationContract) TransferFrom(ctx contractapi.TransactionContextInterface, from string, to string, tokenId string) (bool, error) {
+func (c *VaccinationContract) transferFrom(ctx contractapi.TransactionContextInterface, from string, to string, tokenId string) (bool, error) {
 	sender64, err := ctx.GetClientIdentity().GetID()
 	if err != nil {
 		return false, fmt.Errorf("failed to get ClientIdentity: %v", err)
@@ -177,7 +177,7 @@ func (c *VaccinationContract) TransferFrom(ctx contractapi.TransactionContextInt
 	return true, nil
 }
 
-func (c *VaccinationContract) Approve(ctx contractapi.TransactionContextInterface, operator string, tokenId string) (bool, error) {
+func (c *VaccinationContract) approve(ctx contractapi.TransactionContextInterface, operator string, tokenId string) (bool, error) {
 	sender64, err := ctx.GetClientIdentity().GetID()
 	if err != nil {
 		return false, fmt.Errorf("failed to get client identity: %v", err)
@@ -227,7 +227,7 @@ func (c *VaccinationContract) Approve(ctx contractapi.TransactionContextInterfac
 	return true, nil
 }
 
-func (c *VaccinationContract) SetApprovalForAll(ctx contractapi.TransactionContextInterface, operator string, approved bool) (bool, error) {
+func (c *VaccinationContract) setApprovalForAll(ctx contractapi.TransactionContextInterface, operator string, approved bool) (bool, error) {
 	sender64, err := ctx.GetClientIdentity().GetID()
 	if err != nil {
 		return false, fmt.Errorf("failed to get client identity: %v", err)
