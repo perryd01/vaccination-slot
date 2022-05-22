@@ -40,3 +40,9 @@ Set host port for docker container, default 8080.
     -cname=<name>
 \end{verbatim}
 Set name of docker container, default "vacc{\_}slot".
+
+\subsection{Running Unit tests}
+First setup necessary dependencies, then run:
+\begin{verbatim}
+    $ go test -v ./...
+\end{verbatim}

@@ -35,6 +35,7 @@ A patient can hold only one non-burned token and unlimited number of burned. A p
 A patient can send an offer to another patient about trading a valid token for another. The offer can be accepted or declined. If the necessary conditions are available, the trade will be successful.
 The offer will result in an error if any of the participants doesn't own the token mentioned in the offer or trying to trade burned tokens.
 
+
 \subsection{Data model}
 TokenId is generated as a Universal Unique Identifier. Type is actually an \emph{enum} and it can be any of the following:
 \begin{itemize}
@@ -50,17 +51,17 @@ TokenId is generated as a Universal Unique Identifier. Type is actually an \emph
     \centering
     \begin{tabular}{|c | c | c | c |}
       \hline
-      \multicolumn{4}{|c|}{Token}                                              \\
+      \multicolumn{4}{|c|}{Token}                                        \\
       \hline
-      name     & type      & comment                   & implemented interface \\
+      name     & type      & comment             & implemented interface \\
       \hline
-      TokenId  & string    & generated id of the token & erc721                \\
-      Type     & string    & vaccine type (enum)       & vaccinationSlot       \\
-      Date     & time.Time & vaccination date          & vaccinationSlot       \\
-      Previous & string    & vaccine type (enum)       & vaccinationSlot       \\
-      Owner    & string    & owner of the token        & erc721                \\
-      Burned   & boolean   & is it used up             & erc721 optional       \\
-      Approved & string    &                           & erc721                \\
+      Type     & string    & vaccine type (enum) & vaccinationSlot       \\
+      Date     & time.Time & vaccination date    & vaccinationSlot       \\
+      Previous & string    & vaccine type (enum) & vaccinationSlot       \\
+      Burned   & boolean   & is it used up       & erc721 optional       \\
+      TokenId  & string    & generated uuid      & erc721                \\
+      Owner    & string    & base64 encoded      & erc721                \\
+      Approved & string    &                     & erc721                \\
       \hline
     \end{tabular}
     \caption{\href{https://pkg.go.dev/github.com/perryd01/vaccination-slot/chaincode\#VaccinationSlot}{Vaccination Slot token's data model.}}
@@ -71,15 +72,15 @@ TokenId is generated as a Universal Unique Identifier. Type is actually an \emph
 \begin{center}
   \begin{table}[!ht]
     \centering
-    \begin{tabular}{| c | c |}
+    \begin{tabular}{| c | c |c|}
       \hline
-      \multicolumn{2}{|c|}{Approval} \\
+      \multicolumn{3}{|c|}{Approval} \\
       \hline
-      name     & type                \\
+      name     & type   & comment    \\
       \hline
-      Owner    & string              \\
-      Operator & string              \\
-      Approved & bool                \\
+      Owner    & string & base64     \\
+      Operator & string & base64     \\
+      Approved & bool   &            \\
       \hline
     \end{tabular}
     \caption{\gopkg{\#Approval}{Approval} object's data model.}
@@ -101,6 +102,26 @@ TokenId is generated as a Universal Unique Identifier. Type is actually an \emph
       \hline
     \end{tabular}
     \caption{\gopkg{\#Transfer}{Transfer} object's data model.}
+  \end{table}
+\end{center}
+
+\begin{center}
+  \begin{table}[!ht]
+    \centering
+    \begin{tabular}{|c|c|c|}
+      \hline
+      \multicolumn{3}{|c|}{TradeOffer}                                   \\
+      \hline
+      name          & type   & comment                                   \\
+      \hline
+      Uuid          & string & TradeOffer Identifier                     \\
+      Sender        & string & id of TradeOffer creator, base64 encoded  \\
+      SenderItem    & string & id of token                               \\
+      Recipient     & string & id of TradeOffer receiver, base64 encoded \\
+      RecipientItem & string & id of token                               \\
+      \hline
+    \end{tabular}
+    \caption{\gopkg{\#TradeOffer}{TradeOffer} represents a trade offer for specific slots of specific identities.}
   \end{table}
 \end{center}
 
